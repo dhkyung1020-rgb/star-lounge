@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>STAR학생단 · 별빛 라운지</title>
+<meta name="theme-color" content="#0d1233">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffd166' d='M12 1.8l2.9 6.4 7 .7-5.3 4.7 1.6 6.9L12 16.9l-6.2 3.6 1.6-6.9L2.1 8.9l7-.7z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="sky"></canvas>
+
+<!-- API 주소 설정 -->
+<div id="setupView" class="center-wrap hidden"></div>
+
+<!-- 로그인 / 가입 -->
+<div id="authView" class="center-wrap hidden">
+  <div class="auth-card glass">
+    <div class="brand-big">
+      <span id="bigStar"></span>
+      <h1 class="club-name">STAR학생단</h1>
+      <p class="club-tagline">함께 빛나는 축제 부스를 만들어요 ✨</p>
+    </div>
+    <div class="seg">
+      <button type="button" data-auth="login" class="on">로그인</button>
+      <button type="button" data-auth="signup">처음 왔어요</button>
+    </div>
+
+    <form id="loginForm" autocomplete="on">
+      <label class="field"><span>학번</span><input name="studentNo" inputmode="numeric" placeholder="예) 20315" required></label>
+      <label class="field"><span>비밀번호</span><input name="password" type="password" required></label>
+      <button class="btn primary block">⭐ 라운지 입장하기</button>
+      <p class="hint">비밀번호를 잊었다면 선생님께 초기화를 요청하세요.</p>
+    </form>
+
+    <form id="signupForm" class="hidden" autocomplete="off">
+      <div id="signupClosed" class="privacy hidden">🔒 지금은 신규 가입이 닫혀 있어요. 선생님께 문의하세요.</div>
+      <div class="row2">
+        <label class="field"><span>학번</span><input name="studentNo" inputmode="numeric" placeholder="20315" required></label>
+        <label class="field"><span>이름</span><input name="name" placeholder="홍길동" required></label>
+      </div>
+      <label class="field"><span>닉네임 <small>(친구들에게 보이는 이름, 2~12자)</small></span><input name="nickname" maxlength="12" placeholder="반짝이는별" required></label>
+      <div class="row2">
+        <label class="field"><span>비밀번호 <small>(4자 이상)</small></span><input name="password" type="password" required></label>
+        <label class="field"><span>비밀번호 확인</span><input name="password2" type="password" required></label>
+      </div>
+      <label class="field hidden" id="joinCodeField"><span>가입 코드 <small>(선생님이 알려준 코드)</small></span><input name="joinCode"></label>
+      <div class="field"><span style="display:block;font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:600">나의 별 색깔</span><div class="swatches" id="signupSwatches"></div></div>
+      <div class="privacy">🛡️ <span>학번과 이름은 <b>선생님만</b> 볼 수 있어요. 친구들에게는 <b>닉네임</b>만 보여요.</span></div>
+      <button class="btn primary block" id="signupBtn">✨ 나의 별 만들기</button>
+    </form>
+  </div>
+</div>
+
+<!-- 메인 앱 -->
+<div id="appView" class="hidden">
+  <header class="topbar glass">
+    <div class="brand"><span id="smallStar"></span><div><b class="club-name">STAR학생단</b><small class="club-tagline"></small></div></div>
+    <nav class="tabs">
+      <button data-tab="chat" class="on">💬 은하수 채팅<i class="dot hidden" id="chatDot"></i></button>
+      <button data-tab="board">📌 별빛 게시판</button>
+    </nav>
+    <button class="me-chip" id="meChip" title="내 프로필"></button>
+  </header>
+  <div class="notice hidden" id="noticeBar"><span>📢</span><p id="noticeText"></p></div>
+
+  <main>
+    <section id="chatView" class="chat-layout">
+      <aside class="side glass">
+        <h4>채널</h4>
+        <div id="channelList"></div>
+        <div class="online-wrap">
+          <h4>지금 반짝이는 별 <span id="onlineCount"></span></h4>
+          <div id="onlineList"></div>
+        </div>
+      </aside>
+      <div class="chat-main glass" id="chatMain">
+        <div class="chat-head"><h2 id="chHead"># 전체</h2><span id="chSub"></span></div>
+        <div class="msgs" id="msgs"></div>
+        <div class="drop-hint">📎 여기에 파일을 놓으면 업로드돼요</div>
+        <form class="composer" id="composer">
+          <button type="button" class="icon-btn" id="attachBtn" title="파일 첨부">📎</button>
+          <input type="file" id="fileInput" multiple hidden>
+          <textarea id="msgInput" rows="1" placeholder="메시지 입력 (Enter 전송 · Shift+Enter 줄바꿈)"></textarea>
+          <button class="btn primary send-btn">전송</button>
+        </form>
+        <div class="locked hidden" id="chatLocked">🔒 선생님이 채팅을 잠시 잠갔어요. 읽기만 할 수 있어요.</div>
+      </div>
+    </section>
+
+    <section id="boardView" class="hidden">
+      <div class="board-head glass">
+        <div class="chips" id="catChips"></div>
+        <input type="search" id="boardSearch" placeholder="🔍 제목·내용 검색">
+        <button class="btn primary" id="newPostBtn">✏️ 새 글 쓰기</button>
+      </div>
+      <div class="post-grid" id="postGrid"></div>
+    </section>
+  </main>
+</div>
+
+<!-- 글 보기 -->
+<div class="modal hidden" id="postModal"><div class="modal-card" id="postCard"></div></div>
+
+<!-- 글쓰기/수정 -->
+<div class="modal hidden" id="editModal">
+  <form class="modal-card" id="editForm">
+    <div class="modal-head"><h3 id="editTitle">✏️ 새 글 쓰기</h3><button type="button" class="x" data-close>×</button></div>
+    <div class="row2">
+      <label class="field"><span>분류</span><select name="category" id="editCat"></select></label>
+      <div></div>
+    </div>
+    <label class="field"><span>제목</span><input name="title" maxlength="100" required placeholder="예) 별자리 포토존 + 소원 쪽지 부스"></label>
+    <label class="field"><span>내용</span><textarea name="body" rows="7" placeholder="아이디어, 준비물, 역할 분담 등을 자유롭게 적어 주세요."></textarea></label>
+    <label class="field"><span>링크 <small>(한 줄에 하나씩 · 캔바, 구글 문서, 유튜브 등)</small></span><textarea name="links" rows="2" placeholder="https://www.canva.com/..."></textarea></label>
+    <div class="field">
+      <span>첨부 파일</span>
+      <button type="button" class="btn sm" id="editAttachBtn">📎 파일 선택</button>
+      <input type="file" id="editFileInput" multiple hidden>
+      <div class="attach-list" id="editAttachList"></div>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn ghost" data-close>취소</button><button class="btn primary" id="editSubmit">게시하기</button></div>
+  </form>
+</div>
+
+<!-- 프로필 -->
+<div class="modal hidden" id="profileModal">
+  <div class="modal-card small">
+    <div class="modal-head"><h3>🌟 나의 별</h3><button type="button" class="x" data-close>×</button></div>
+    <div class="profile-top" id="profileTop"></div>
+    <form id="profileForm">
+      <label class="field"><span>닉네임</span><input name="nickname" maxlength="12" required></label>
+      <div class="field"><span>별 색깔</span><div class="swatches" id="profileSwatches"></div></div>
+      <button class="btn primary">프로필 저장</button>
+    </form>
+    <hr class="sep">
+    <form id="pwForm">
+      <div class="row2">
+        <label class="field"><span>현재 비밀번호</span><input name="oldPassword" type="password" required></label>
+        <label class="field"><span>새 비밀번호</span><input name="newPassword" type="password" required></label>
+      </div>
+      <button class="btn">비밀번호 바꾸기</button>
+    </form>
+    <hr class="sep">
+    <button class="btn danger" id="logoutBtn">로그아웃</button>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => [...document.querySelectorAll(s)];
+  const { esc, linkify, toast } = STAR;
+  const COLORS = ['#ffd166', '#ff9f9f', '#f9a8d4', '#c4b5fd', '#93c5fd', '#7dd3fc', '#5eead4', '#a3e635', '#fdba74', '#e2e8f0'];
+
+  const S = {
+    token: localStorage.getItem('star_token') || '',
+    me: null, settings: null,
+    channel: '', msgs: new Map(), lastTs: 0, delrev: null, pending: [],
+    tab: 'chat', posts: [], cat: '전체', search: '',
+    timer: null, polling: false, again: false, boardTimer: null,
+    signupColor: COLORS[Math.floor(Math.random() * COLORS.length)], profileColor: '',
+    edit: null, // {id?, files:[]}
+  };
+
+  /* ---------------- 공통 화면 전환 ---------------- */
+  function show(view) {
+    ['setupView', 'authView', 'appView'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== view));
+  }
+  function swatches(el, current, onPick) {
+    el.innerHTML = COLORS.map((c) => `<button type="button" class="swatch ${c === current ? 'on' : ''}" style="--c:${c}" data-c="${c}" aria-label="${c}"></button>`).join('');
+    el.onclick = (e) => {
+      const b = e.target.closest('.swatch'); if (!b) return;
+      el.querySelectorAll('.swatch').forEach((x) => x.classList.toggle('on', x === b));
+      onPick(b.dataset.c);
+    };
+  }
+  function handleErr(e) {
+    if (e.code === 'AUTH' || e.code === 'BANNED') { logout(); toast(e.message, 'err'); return true; }
+    return false;
+  }
+
+  /* ---------------- 설정 반영 ---------------- */
+  function applySettings(s) {
+    const prev = S.settings ? JSON.stringify(S.settings) : '';
+    S.settings = s;
+    if (prev === JSON.stringify(s)) return;
+    document.title = `${s.clubName} · 별빛 라운지`;
+    $$('.club-name').forEach((e) => (e.textContent = s.clubName));
+    $$('.club-tagline').forEach((e) => (e.textContent = s.tagline || ''));
+    $('#noticeBar').classList.toggle('hidden', !s.notice);
+    $('#noticeText').innerHTML = linkify(s.notice || '');
+    $('#joinCodeField').classList.toggle('hidden', !s.joinRequired);
+    $('#signupClosed').classList.toggle('hidden', s.allowSignup);
+    $('#signupBtn').disabled = !s.allowSignup;
+    if (S.me) {
+      const isT = S.me.isAdmin;
+      $('#composer').classList.toggle('hidden', !s.chatEnabled && !isT);
+      $('#chatLocked').classList.toggle('hidden', s.chatEnabled || isT);
+      $('#attachBtn').classList.toggle('hidden', !s.uploadEnabled && !isT);
+      $('#newPostBtn').classList.toggle('hidden', !s.boardWrite && !isT);
+      if (S.channel && s.channels.indexOf(S.channel) < 0) selectChannel(s.channels[0]);
+      else renderChannels();
+      renderCats();
+    }
+  }
+
+  /* ---------------- 인증 ---------------- */
+  $$('[data-auth]').forEach((b) => (b.onclick = () => {
+    $$('[data-auth]').forEach((x) => x.classList.toggle('on', x === b));
+    $('#loginForm').classList.toggle('hidden', b.dataset.auth !== 'login');
+    $('#signupForm').classList.toggle('hidden', b.dataset.auth !== 'signup');
+  }));
+  swatches($('#signupSwatches'), S.signupColor, (c) => (S.signupColor = c));
+
+  async function withBtn(form, fn) {
+    const btn = form.querySelector('button:not([type=button])');
+    const old = btn.textContent; btn.disabled = true; btn.textContent = '잠시만요…';
+    try { await fn(); } catch (e) { toast(e.message, 'err'); } finally { btn.disabled = false; btn.textContent = old; }
+  }
+
+  $('#loginForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    withBtn(e.target, async () => {
+      const r = await STAR.call('login', f);
+      e.target.reset();
+      loginDone(r.token, r.user);
+    });
+  };
+  $('#signupForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    if (f.password !== f.password2) return toast('비밀번호 확인이 일치하지 않아요.', 'err');
+    f.color = S.signupColor;
+    withBtn(e.target, async () => {
+      const r = await STAR.call('signup', f);
+      e.target.reset();
+      toast(`환영해요, ${r.user.nickname}님! 🌟`, 'ok');
+      loginDone(r.token, r.user);
+    });
+  };
+
+  function loginDone(token, user) {
+    S.token = token; localStorage.setItem('star_token', token);
+    S.me = user; enterApp();
+  }
+  function logout() {
+    clearTimeout(S.timer); clearInterval(S.boardTimer);
+    S.token = ''; S.me = null; localStorage.removeItem('star_token');
+    S.msgs.clear(); S.lastTs = 0; S.channel = '';
+    show('authView');
+  }
+
+  /* ---------------- 앱 진입 ---------------- */
+  function enterApp() {
+    show('appView');
+    renderMe();
+    const s = S.settings; S.settings = null; applySettings(s);
+    const saved = localStorage.getItem('star_ch');
+    selectChannel(s.channels.indexOf(saved) >= 0 ? saved : s.channels[0]);
+    switchTab('chat');
+  }
+  function renderMe() {
+    $('#meChip').innerHTML = `${STAR.avatar(S.me.nickname, S.me.color, 'sm')}<span>${esc(S.me.nickname)}</span>`;
+  }
+
+  $$('.tabs button').forEach((b) => (b.onclick = () => switchTab(b.dataset.tab)));
+  function switchTab(t) {
+    S.tab = t;
+    $$('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
+    $('#chatView').classList.toggle('hidden', t !== 'chat');
+    $('#boardView').classList.toggle('hidden', t !== 'board');
+    clearInterval(S.boardTimer);
+    if (t === 'chat') { $('#chatDot').classList.add('hidden'); scrollBottom(true); }
+    if (t === 'board') { loadPosts(); S.boardTimer = setInterval(() => { if (!document.hidden && $('#postModal').classList.contains('hidden')) loadPosts(true); }, 25000); }
+  }
+
+  /* ---------------- 채팅 ---------------- */
+  function renderChannels() {
+    const icons = ['🌌', '💡', '🎨', '🧩', '☕', '🪐', '🌙', '🚀'];
+    $('#channelList').innerHTML = S.settings.channels.map((c, i) =>
+      `<button class="ch ${c === S.channel ? 'on' : ''}" data-ch="${esc(c)}">${icons[i % icons.length]} ${esc(c)}</button>`).join('');
+  }
+  $('#channelList').onclick = (e) => { const b = e.target.closest('[data-ch]'); if (b && b.dataset.ch !== S.channel) selectChannel(b.dataset.ch); };
+
+  function selectChannel(ch) {
+    S.channel = ch; S.msgs = new Map(); S.lastTs = 0; S.pending = [];
+    localStorage.setItem('star_ch', ch);
+    $('#chHead').textContent = '# ' + ch;
+    $('#chSub').textContent = '';
+    $('#msgs').innerHTML = '<div class="loading">✨ 별빛을 불러오는 중…</div>';
+    renderChannels();
+    pollNow();
+  }
+
+  function pollNow() {
+    clearTimeout(S.timer);
+    if (S.polling) { S.again = true; return; }
+    poll();
+  }
+  async function poll() {
+    if (!S.token) return;
+    S.polling = true;
+    const ch = S.channel, since = S.lastTs;
+    try {
+      const r = await STAR.call('poll', { channel: ch, since }, S.token);
+      if (ch !== S.channel || !S.token) return;
+      applySettings(r.settings);
+      renderOnline(r.online);
+      if (S.delrev !== null && r.delrev !== S.delrev && since) {
+        S.delrev = r.delrev; S.lastTs = 0; S.msgs.clear(); S.again = true; return;
+      }
+      S.delrev = r.delrev;
+      addMsgs(r.messages, !since, true);
+    } catch (e) {
+      if (handleErr(e)) return;
+      if (e.code !== 'NET' && e.code !== 'BUSY') console.warn(e);
+    } finally {
+      S.polling = false;
+      if (S.token) {
+        if (S.again) { S.again = false; S.timer = setTimeout(poll, 50); }
+        else S.timer = setTimeout(poll, document.hidden ? 15000 : 3000);
+      }
+    }
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && S.token) pollNow(); });
+
+  function addMsgs(list, replace, advance) {
+    let fresh = 0;
+    if (replace) S.msgs.clear();
+    for (const m of list) {
+      if (!S.msgs.has(m.id)) { S.msgs.set(m.id, m); if (m.userId !== S.me.id) fresh++; }
+      if (advance && m.ts > S.lastTs) S.lastTs = m.ts;
+    }
+    if (S.msgs.size > 500) {
+      const arr = [...S.msgs.values()].sort((a, b) => a.ts - b.ts).slice(-400);
+      S.msgs = new Map(arr.map((m) => [m.id, m]));
+    }
+    if (replace || list.length) renderMsgs(replace);
+    if (!replace && fresh && S.tab !== 'chat') $('#chatDot').classList.remove('hidden');
+  }
+
+  function msgContent(m) {
+    if (m.kind === 'file') {
+      const id = STAR.driveId(m.url);
+      if (id && STAR.isImage(m.fileName)) {
+        return `<a class="file-img" href="${esc(m.url)}" target="_blank" rel="noopener"><img src="${STAR.thumb(id)}" alt="" loading="lazy" onerror="this.parentNode.classList.add('broken')"><span class="cap">🖼️ ${esc(m.fileName)}</span></a>`;
+      }
+      return `<a class="file-card" href="${esc(m.url)}" target="_blank" rel="noopener"><span class="fi">${STAR.fileIcon(m.fileName)}</span><span><b>${esc(m.fileName)}</b><small>눌러서 열기 · 다운로드</small></span></a>`;
+    }
+    return linkify(m.text);
+  }
+
+  function nearBottom() { const el = $('#msgs'); return el.scrollHeight - el.scrollTop - el.clientHeight < 120; }
+  function scrollBottom(force) { const el = $('#msgs'); if (force || nearBottom()) requestAnimationFrame(() => (el.scrollTop = el.scrollHeight)); }
+
+  function renderMsgs(forceBottom) {
+    const el = $('#msgs');
+    const stick = forceBottom || nearBottom();
+    const arr = [...S.msgs.values()].sort((a, b) => a.ts - b.ts);
+    let html = '', prev = null, prevDay = '';
+    if (!arr.length && !S.pending.length) {
+      html = `<div class="empty"><span class="big">🌠</span>아직 조용한 채널이에요.<br>첫 메시지로 별을 띄워 보세요!</div>`;
+    }
+    for (const m of arr) {
+      const day = STAR.dateLabel(m.ts);
+      if (day !== prevDay) { html += `<div class="day-sep"><span>${day}</span></div>`; prevDay = day; prev = null; }
+      const mine = m.userId === S.me.id, teacher = m.userId === 'admin';
+      const grouped = prev && prev.userId === m.userId && m.ts - prev.ts < 5 * 60e3;
+      const canDel = mine || S.me.isAdmin;
+      html += `<div class="msg ${mine ? 'mine' : ''} ${teacher ? 'teacher' : ''} ${grouped ? 'grouped' : ''}">
+        ${mine ? '' : STAR.avatar(m.nickname, m.color)}
+        <div class="body">
+          ${!mine && !grouped ? `<div class="who">${esc(m.nickname)}${teacher ? '<span class="badge">선생님</span>' : ''}</div>` : ''}
+          <div class="line"><div class="bubble ${m.kind === 'file' ? 'file' : ''}">${msgContent(m)}</div><span class="t">${STAR.time(m.ts)}</span>${canDel ? `<button class="del" data-del="${m.id}" title="삭제">삭제</button>` : ''}</div>
+        </div></div>`;
+      prev = m;
+    }
+    for (const p of S.pending) {
+      html += `<div class="msg mine pending"><div class="body"><div class="line"><div class="bubble">${p.html}</div><span class="t">보내는 중…</span></div></div></div>`;
+    }
+    el.innerHTML = html;
+    if (stick) scrollBottom(true);
+  }
+
+  $('#msgs').onclick = async (e) => {
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    const ok = await STAR.ask({ title: '메시지를 삭제할까요?', ok: '삭제', danger: true });
+    if (!ok) return;
+    try { await STAR.call('deleteMessage', { id: b.dataset.del }, S.token); S.msgs.delete(b.dataset.del); renderMsgs(); }
+    catch (er) { if (!handleErr(er)) toast(er.message, 'err'); }
+  };
+
+  const input = $('#msgInput');
+  function autosize() { input.style.height = 'auto'; input.style.height = Math.min(140, input.scrollHeight) + 'px'; }
+  input.addEventListener('input', autosize);
+  input.addEventListener('keydown', (e) => {
+    if (e.isComposing || e.keyCode === 229) return; // 한글 입력 중 Enter 무시
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); }
+  });
+  $('#composer').onsubmit = (e) => { e.preventDefault(); sendText(); };
+
+  async function sendText() {
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = ''; autosize();
+    const p = { html: linkify(text) };
+    S.pending.push(p); renderMsgs(true);
+    try {
+      const r = await STAR.call('sendMessage', { channel: S.channel, text }, S.token);
+      S.pending = S.pending.filter((x) => x !== p);
+      addMsgs([r.message], false, false);
+      pollNow();
+    } catch (e) {
+      S.pending = S.pending.filter((x) => x !== p); renderMsgs();
+      if (!handleErr(e)) { toast(e.message, 'err'); if (!input.value) { input.value = text; autosize(); } }
+    }
+  }
+
+  async function uploadOne(file) {
+    const max = S.settings.maxFileMB * 1024 * 1024;
+    if (file.size > max) throw new Error(`${file.name}: ${S.settings.maxFileMB}MB 이하만 올릴 수 있어요.`);
+    const data = await STAR.fileToBase64(file);
+    const r = await STAR.call('uploadFile', { name: file.name, mime: file.type, data }, S.token);
+    return r.file;
+  }
+
+  async function sendFiles(files) {
+    if (!files.length) return;
+    if (!S.settings.uploadEnabled && !S.me.isAdmin) return toast('지금은 파일 업로드가 꺼져 있어요.', 'err');
+    for (const f of files) {
+      const p = { html: `⏳ <b>${esc(f.name)}</b> 업로드 중… (${STAR.fmtSize(f.size)})` };
+      S.pending.push(p); renderMsgs(true);
+      try {
+        const up = await uploadOne(f);
+        const r = await STAR.call('sendMessage', { channel: S.channel, kind: 'file', url: up.url, fileName: up.name }, S.token);
+        addMsgs([r.message], false, false);
+      } catch (e) { if (!handleErr(e)) toast(e.message, 'err'); }
+      S.pending = S.pending.filter((x) => x !== p); renderMsgs();
+    }
+    pollNow();
+  }
+  $('#attachBtn').onclick = () => $('#fileInput').click();
+  $('#fileInput').onchange = (e) => { sendFiles([...e.target.files]); e.target.value = ''; };
+  const cm = $('#chatMain');
+  let dragN = 0;
+  cm.addEventListener('dragenter', (e) => { if ([...e.dataTransfer.types].includes('Files')) { dragN++; cm.classList.add('dragging'); } });
+  cm.addEventListener('dragleave', () => { if (--dragN <= 0) { dragN = 0; cm.classList.remove('dragging'); } });
+  cm.addEventListener('dragover', (e) => e.preventDefault());
+  cm.addEventListener('drop', (e) => { e.preventDefault(); dragN = 0; cm.classList.remove('dragging'); sendFiles([...e.dataTransfer.files]); });
+  input.addEventListener('paste', (e) => {
+    const files = [...(e.clipboardData?.files || [])];
+    if (files.length) { e.preventDefault(); sendFiles(files); }
+  });
+
+  function renderOnline(list) {
+    $('#onlineCount').textContent = list.length ? `· ${list.length}` : '';
+    $('#chSub').textContent = list.length ? `🟢 ${list.length}명 접속 중` : '';
+    $('#onlineList').innerHTML = list.length
+      ? list.map((u) => `<div class="on-user">${STAR.avatar(u.nickname, u.color, 'sm')}<span>${esc(u.nickname)}${u.teacher ? ' <span class="badge">선생님</span>' : ''}</span></div>`).join('')
+      : '<div class="muted" style="padding:4px 8px;font-size:13px">아무도 없어요</div>';
+  }
+
+  /* ---------------- 게시판 ---------------- */
+  function renderCats() {
+    const cats = ['전체', '공지', ...S.settings.categories.filter((c) => c !== '공지')];
+    if (cats.indexOf(S.cat) < 0) S.cat = '전체';
+    $('#catChips').innerHTML = cats.map((c) => `<button class="chip ${c === S.cat ? 'on' : ''}" data-cat="${esc(c)}">${c === '전체' ? '✨ ' : ''}${esc(c)}</button>`).join('');
+  }
+  $('#catChips').onclick = (e) => { const b = e.target.closest('[data-cat]'); if (!b) return; S.cat = b.dataset.cat; renderCats(); renderPosts(); };
+  $('#boardSearch').oninput = (e) => { S.search = e.target.value.trim().toLowerCase(); renderPosts(); };
+
+  async function loadPosts(quiet) {
+    if (!quiet && !S.posts.length) $('#postGrid').innerHTML = '<div class="loading">✨ 게시판을 불러오는 중…</div>';
+    try { const r = await STAR.call('listPosts', {}, S.token); S.posts = r.posts; renderPosts(); }
+    catch (e) { if (!handleErr(e) && !quiet) toast(e.message, 'err'); }
+  }
+  function renderPosts() {
+    const list = S.posts.filter((p) => (S.cat === '전체' || p.category === S.cat) &&
+      (!S.search || (p.title + ' ' + p.excerpt + ' ' + p.nickname).toLowerCase().includes(S.search)));
+    $('#postGrid').innerHTML = list.length ? list.map((p) => `
+      <article class="post-card glass ${p.pinned ? 'pinned' : ''}" data-post="${p.id}">
+        ${p.thumb ? `<div class="pthumb" style="background-image:url('${STAR.thumb(p.thumb, 600)}')"></div>` : ''}
+        <div class="pc-top"><span class="cat ${p.category === '공지' ? 'notice' : ''}">${esc(p.category)}</span>${p.pinned ? '<span class="pin">📌 고정</span>' : ''}</div>
+        <h3>${esc(p.title)}</h3>
+        ${p.excerpt ? `<p>${esc(p.excerpt)}</p>` : ''}
+        <div class="pc-foot">${STAR.avatar(p.nickname, p.color, 'sm')}<span>${esc(p.nickname)} · ${STAR.ago(p.ts)}</span>
+          <span class="meta"><span>⭐ ${p.starCount}</span><span>💬 ${p.commentCount}</span>${p.fileCount ? `<span>📎 ${p.fileCount}</span>` : ''}${p.linkCount ? `<span>🔗 ${p.linkCount}</span>` : ''}</span></div>
+      </article>`).join('')
+      : `<div class="empty glass" style="border-radius:18px"><span class="big">🔭</span>${S.search ? '검색 결과가 없어요.' : '아직 글이 없어요. 첫 번째 별을 띄워 보세요 ✨'}</div>`;
+  }
+  $('#postGrid').onclick = (e) => { const c = e.target.closest('[data-post]'); if (c) openPost(c.dataset.post); };
+
+  function openModal(id) { $('#' + id).classList.remove('hidden'); }
+  function closeModal(id) { $('#' + id).classList.add('hidden'); }
+  $$('.modal').forEach((m) => {
+    m.addEventListener('mousedown', (e) => { if (e.target === m) m.classList.add('hidden'); });
+    m.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) m.classList.add('hidden'); });
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.modal:not(.hidden)').forEach((m) => m.classList.add('hidden')); });
+
+  let current = null;
+  async function openPost(id) {
+    $('#postCard').innerHTML = '<div class="loading">✨ 불러오는 중…</div>';
+    openModal('postModal');
+    try { const r = await STAR.call('getPost', { id }, S.token); current = r; renderPost(); }
+    catch (e) { closeModal('postModal'); if (!handleErr(e)) toast(e.message, 'err'); loadPosts(true); }
+  }
+  function renderPost() {
+    const { post: p, comments } = current;
+    const mine = p.userId === S.me.id, can = mine || S.me.isAdmin;
+    const canWrite = S.settings.boardWrite || S.me.isAdmin;
+    $('#postCard').innerHTML = `
+      <div class="modal-head"><span class="cat ${p.category === '공지' ? 'notice' : ''}">${esc(p.category)}</span>${p.pinned ? '<span class="pin">📌 고정</span>' : ''}<button class="x" data-close>×</button></div>
+      <h2 class="post-title">${esc(p.title)}</h2>
+      <div class="post-author">${STAR.avatar(p.nickname, p.color)}<div><b>${esc(p.nickname)}</b>${p.userId === 'admin' ? ' <span class="badge">선생님</span>' : ''}<br>${STAR.dateLabel(p.ts)} ${STAR.time(p.ts).replace(/^\d+\/\d+ /, '')}${p.updatedAt ? ' · 수정됨' : ''}</div></div>
+      ${p.body ? `<div class="post-body">${linkify(p.body)}</div>` : '<div style="height:14px"></div>'}
+      ${p.links.length ? `<div class="link-list">${p.links.map((l) => `<a class="link-card" href="${esc(l)}" target="_blank" rel="noopener"><span style="font-size:20px">🔗</span><span class="lc-t"><b>${esc(STAR.domain(l))}</b><span>${esc(l)}</span></span></a>`).join('')}</div>` : ''}
+      ${p.files.length ? `<div class="file-grid">${p.files.map((f) => {
+        const img = STAR.isImage(f.name, f.mime) && f.id;
+        return `<a class="file-tile" href="${esc(f.url)}" target="_blank" rel="noopener"><div class="ft-img" ${img ? `style="background-image:url('${STAR.thumb(f.id, 400)}')"` : ''}>${img ? '' : STAR.fileIcon(f.name)}</div><span>${esc(f.name)}</span></a>`;
+      }).join('')}</div>` : ''}
+      <div class="post-actions">
+        <button class="star-btn ${p.starred ? 'on' : ''}" id="starBtn">⭐ 별 주기 ${p.starCount}</button>
+        <span class="muted" style="font-size:13px">좋은 아이디어에 별을 눌러 주세요</span>
+        <span style="flex:1"></span>
+        ${can ? `<button class="btn sm" id="editPostBtn">수정</button><button class="btn sm danger" id="delPostBtn">삭제</button>` : ''}
+      </div>
+      <div class="comments">
+        <h4>💬 댓글 ${comments.length}</h4>
+        ${comments.map((c) => `<div class="cmt">${STAR.avatar(c.nickname, c.color, 'sm')}<div class="c-body"><div class="c-meta"><b>${esc(c.nickname)}</b>${c.userId === 'admin' ? '<span class="badge">선생님</span> ' : ''}${STAR.ago(c.ts)} ${(c.userId === S.me.id || S.me.isAdmin) ? `<button class="del" data-cdel="${c.id}">삭제</button>` : ''}</div><div class="c-text">${linkify(c.text)}</div></div></div>`).join('') || '<div class="muted" style="font-size:13.5px">첫 댓글을 남겨 보세요!</div>'}
+        ${canWrite ? `<form class="cmt-form" id="cmtForm"><input name="text" placeholder="댓글을 입력하세요" maxlength="1000" autocomplete="off"><button class="btn primary">등록</button></form>` : ''}
+      </div>`;
+    $('#starBtn').onclick = async () => {
+      try {
+        const r = await STAR.call('toggleStar', { id: p.id }, S.token);
+        p.starred = r.starred; p.starCount = r.starCount; renderPost();
+        const lp = S.posts.find((x) => x.id === p.id); if (lp) { lp.starCount = r.starCount; renderPosts(); }
+      } catch (e) { if (!handleErr(e)) toast(e.message, 'err'); }
+    };
+    if (can) {
+      $('#editPostBtn').onclick = () => { closeModal('postModal'); openEditor(p); };
+      $('#delPostBtn').onclick = async () => {
+        if (!(await STAR.ask({ title: '이 글을 삭제할까요?', desc: '삭제한 글은 되돌릴 수 없어요.', ok: '삭제', danger: true }))) return;
+        try { await STAR.call('deletePost', { id: p.id }, S.token); closeModal('postModal'); toast('삭제했어요.', 'ok'); loadPosts(true); }
+        catch (e) { if (!handleErr(e)) toast(e.message, 'err'); }
+      };
+    }
+    $$('#postCard [data-cdel]').forEach((b) => (b.onclick = async () => {
+      if (!(await STAR.ask({ title: '댓글을 삭제할까요?', ok: '삭제', danger: true }))) return;
+      try { await STAR.call('deleteComment', { id: b.dataset.cdel }, S.token); current.comments = current.comments.filter((c) => c.id !== b.dataset.cdel); renderPost(); loadPosts(true); }
+      catch (e) { if (!handleErr(e)) toast(e.message, 'err'); }
+    }));
+    const cf = $('#cmtForm');
+    if (cf) cf.onsubmit = async (e) => {
+      e.preventDefault();
+      const text = cf.text.value.trim(); if (!text) return;
+      cf.querySelector('button').disabled = true;
+      try {
+        const r = await STAR.call('addComment', { postId: p.id, text }, S.token);
+        current.comments.push(r.comment); renderPost(); loadPosts(true);
+        setTimeout(() => $('#cmtForm')?.text.focus(), 20);
+      } catch (er) { if (!handleErr(er)) toast(er.message, 'err'); cf.querySelector('button').disabled = false; }
+    };
+  }
+
+  /* ----- 글쓰기 ----- */
+  $('#newPostBtn').onclick = () => openEditor(null);
+  function openEditor(p) {
+    const f = $('#editForm');
+    f.reset();
+    const cats = S.me.isAdmin ? ['공지', ...S.settings.categories.filter((c) => c !== '공지')] : S.settings.categories;
+    $('#editCat').innerHTML = cats.map((c) => `<option>${esc(c)}</option>`).join('');
+    S.edit = { id: p ? p.id : null, files: p ? p.files.slice() : [], uploading: 0 };
+    $('#editTitle').textContent = p ? '✏️ 글 수정하기' : '✏️ 새 글 쓰기';
+    $('#editSubmit').textContent = p ? '수정 완료' : '게시하기';
+    if (p) {
+      f.title.value = p.title; f.body.value = p.body; f.links.value = p.links.join('\n');
+      if (cats.indexOf(p.category) >= 0) f.category.value = p.category;
+    } else if (S.cat !== '전체' && cats.indexOf(S.cat) >= 0) f.category.value = S.cat;
+    $('#editAttachBtn').classList.toggle('hidden', !S.settings.uploadEnabled && !S.me.isAdmin);
+    renderAttach();
+    openModal('editModal');
+    setTimeout(() => f.title.focus(), 30);
+  }
+  function renderAttach(pendingNames = []) {
+    $('#editAttachList').innerHTML = S.edit.files.map((f, i) => `<span class="attach-item">${STAR.fileIcon(f.name)} ${esc(f.name)} <button type="button" data-rm="${i}">×</button></span>`).join('') +
+      pendingNames.map((n) => `<span class="attach-item up">⏳ ${esc(n)}</span>`).join('');
+  }
+  $('#editAttachList').onclick = (e) => { const b = e.target.closest('[data-rm]'); if (b) { S.edit.files.splice(+b.dataset.rm, 1); renderAttach(); } };
+  $('#editAttachBtn').onclick = () => $('#editFileInput').click();
+  $('#editFileInput').onchange = async (e) => {
+    const files = [...e.target.files]; e.target.value = '';
+    const pend = files.map((f) => f.name);
+    S.edit.uploading += files.length; renderAttach(pend);
+    for (const f of files) {
+      try { const up = await uploadOne(f); S.edit.files.push(up); }
+      catch (er) { if (!handleErr(er)) toast(er.message, 'err'); }
+      pend.shift(); S.edit.uploading--; renderAttach(pend);
+    }
+  };
+  $('#editForm').onsubmit = async (e) => {
+    e.preventDefault();
+    if (S.edit.uploading) return toast('파일 업로드가 끝날 때까지 기다려 주세요.', 'err');
+    const f = e.target;
+    const payload = { id: S.edit.id, category: f.category.value, title: f.title.value, body: f.body.value,
+      links: f.links.value.split('\n').map((x) => x.trim()).filter(Boolean), files: S.edit.files };
+    const btn = $('#editSubmit'); btn.disabled = true;
+    try {
+      if (S.edit.id) await STAR.call('updatePost', payload, S.token);
+      else await STAR.call('createPost', payload, S.token);
+      closeModal('editModal'); toast(S.edit.id ? '수정했어요.' : '게시했어요! ⭐', 'ok');
+      await loadPosts(true);
+      if (S.edit.id) openPost(S.edit.id);
+    } catch (er) { if (!handleErr(er)) toast(er.message, 'err'); }
+    finally { btn.disabled = false; }
+  };
+
+  /* ---------------- 프로필 ---------------- */
+  $('#meChip').onclick = () => {
+    if (S.me.isAdmin) return toast('교사 계정은 교사용 페이지에서 관리해요.');
+    S.profileColor = S.me.color;
+    $('#profileTop').innerHTML = `${STAR.avatar(S.me.nickname, S.me.color, 'lg')}<div><b>${esc(S.me.nickname)}</b><div class="muted" style="font-size:13px">${esc(S.me.studentNo)} · ${esc(S.me.name)} <small>(나만 보여요)</small></div></div>`;
+    $('#profileForm').nickname.value = S.me.nickname;
+    swatches($('#profileSwatches'), S.me.color, (c) => (S.profileColor = c));
+    $('#pwForm').reset();
+    openModal('profileModal');
+  };
+  $('#profileForm').onsubmit = (e) => {
+    e.preventDefault();
+    withBtn(e.target, async () => {
+      const r = await STAR.call('updateProfile', { nickname: e.target.nickname.value, color: S.profileColor }, S.token);
+      S.me = Object.assign(S.me, r.user); renderMe(); closeModal('profileModal');
+      toast('프로필을 바꿨어요 ✨', 'ok');
+      S.lastTs = 0; S.again = true; pollNow();
+    });
+  };
+  $('#pwForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    withBtn(e.target, async () => {
+      const r = await STAR.call('changePassword', f, S.token);
+      S.token = r.token; localStorage.setItem('star_token', r.token);
+      e.target.reset(); toast('비밀번호를 바꿨어요.', 'ok');
+    });
+  };
+  $('#logoutBtn').onclick = () => { closeModal('profileModal'); logout(); };
+
+  /* ---------------- 시작 ---------------- */
+  async function init() {
+    $('#bigStar').innerHTML = STAR.starSvg(58);
+    $('#smallStar').innerHTML = STAR.starSvg(30);
+    STAR.starfield($('#sky'));
+    if (!STAR.apiUrl()) { show('setupView'); STAR.setupScreen($('#setupView'), init); return; }
+    try {
+      const r = await STAR.call('publicSettings');
+      applySettings(r.settings);
+    } catch (e) {
+      show('authView'); toast(e.message, 'err');
+      applySettings({ clubName: 'STAR학생단', tagline: '', notice: '', allowSignup: true, joinRequired: false, chatEnabled: true, uploadEnabled: true, boardWrite: true, maxFileMB: 10, channels: ['전체'], categories: ['기타'] });
+      return;
+    }
+    if (S.token) {
+      try { const r = await STAR.call('me', {}, S.token); S.me = r.user; applySettings(r.settings); enterApp(); return; }
+      catch (e) { if (e.code === 'AUTH' || e.code === 'BANNED') { localStorage.removeItem('star_token'); S.token = ''; toast(e.message, 'err'); } else toast(e.message, 'err'); }
+    }
+    show('authView');
+  }
+  init();
+})();
+</script>
+</body>
+</html>
