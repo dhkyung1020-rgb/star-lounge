@@ -12,7 +12,6 @@
 <body>
 <canvas id="sky"></canvas>
 
-<!-- API 주소 설정 -->
 <div id="setupView" class="center-wrap hidden"></div>
 
 <!-- 로그인 / 가입 -->
@@ -27,14 +26,12 @@
       <button type="button" data-auth="login" class="on">로그인</button>
       <button type="button" data-auth="signup">처음 왔어요</button>
     </div>
-
     <form id="loginForm" autocomplete="on">
       <label class="field"><span>학번</span><input name="studentNo" inputmode="numeric" placeholder="예) 20315" required></label>
       <label class="field"><span>비밀번호</span><input name="password" type="password" required></label>
       <button class="btn primary block">⭐ 라운지 입장하기</button>
       <p class="hint">비밀번호를 잊었다면 선생님께 초기화를 요청하세요.</p>
     </form>
-
     <form id="signupForm" class="hidden" autocomplete="off">
       <div id="signupClosed" class="privacy hidden">🔒 지금은 신규 가입이 닫혀 있어요. 선생님께 문의하세요.</div>
       <div class="row2">
@@ -59,25 +56,34 @@
   <header class="topbar glass">
     <div class="brand"><span id="smallStar"></span><div><b class="club-name">STAR학생단</b><small class="club-tagline"></small></div></div>
     <nav class="tabs">
-      <button data-tab="chat" class="on">💬 은하수 채팅<i class="dot hidden" id="chatDot"></i></button>
-      <button data-tab="board">📌 별빛 게시판</button>
+      <button data-tab="lounge" class="on">🌌 전체 라운지<i class="dot hidden" id="dotLounge"></i></button>
+      <button data-tab="teams">🪐 팀 라운지<i class="dot hidden" id="dotTeams"></i></button>
+      <button data-tab="board">📌 게시판</button>
+      <button data-tab="roles">🧩 역할분담</button>
     </nav>
     <button class="me-chip" id="meChip" title="내 프로필"></button>
   </header>
   <div class="notice hidden" id="noticeBar"><span>📢</span><p id="noticeText"></p></div>
 
   <main>
+    <!-- 채팅 (전체 라운지 / 팀 라운지 공용) -->
     <section id="chatView" class="chat-layout">
       <aside class="side glass">
-        <h4>채널</h4>
-        <div id="channelList"></div>
-        <div class="online-wrap">
+        <div class="side-block">
           <h4>지금 반짝이는 별 <span id="onlineCount"></span></h4>
           <div id="onlineList"></div>
         </div>
+        <div class="side-block">
+          <h4>팀 라운지 바로가기</h4>
+          <div id="quickRooms"></div>
+        </div>
       </aside>
       <div class="chat-main glass" id="chatMain">
-        <div class="chat-head"><h2 id="chHead"># 전체</h2><span id="chSub"></span></div>
+        <div class="chat-head">
+          <button class="btn sm ghost hidden" id="backToTeams">← 팀 목록</button>
+          <div class="ch-title"><h2 id="chHead">🌌 전체 라운지</h2><span id="chSub"></span></div>
+          <button class="btn sm danger hidden" id="delRoomBtn">팀 라운지 삭제</button>
+        </div>
         <div class="msgs" id="msgs"></div>
         <div class="drop-hint">📎 여기에 파일을 놓으면 업로드돼요</div>
         <form class="composer" id="composer">
@@ -90,13 +96,42 @@
       </div>
     </section>
 
+    <!-- 팀 라운지 목록 -->
+    <section id="teamsView" class="hidden">
+      <div class="view-head glass">
+        <div><h2>🪐 팀 라운지</h2><p class="muted">팀별 대화방이에요. 들어가고 싶은 방을 눌러 입장하세요.</p></div>
+        <button class="btn primary" id="newRoomBtn">＋ 새 팀 라운지</button>
+      </div>
+      <div class="room-grid" id="roomGrid"></div>
+    </section>
+
+    <!-- 게시판 -->
     <section id="boardView" class="hidden">
       <div class="board-head glass">
         <div class="chips" id="catChips"></div>
-        <input type="search" id="boardSearch" placeholder="🔍 제목·내용 검색">
+        <input type="search" id="boardSearch" placeholder="🔍 제목·내용·파일 검색">
         <button class="btn primary" id="newPostBtn">✏️ 새 글 쓰기</button>
       </div>
-      <div class="post-grid" id="postGrid"></div>
+      <div class="feed glass" id="feed"></div>
+    </section>
+
+    <!-- 역할분담 -->
+    <section id="rolesView" class="hidden">
+      <div class="view-head glass">
+        <div>
+          <h2>🧩 역할분담표</h2>
+          <div class="role-summary" id="roleSummary"></div>
+        </div>
+        <div class="view-actions">
+          <div class="seg mini" id="roleViewSeg">
+            <button type="button" data-rv="board" class="on">배치표</button>
+            <button type="button" data-rv="people">사람별</button>
+            <button type="button" data-rv="table">표</button>
+          </div>
+          <button class="btn primary" id="newRoleBtn">＋ 역할 추가</button>
+        </div>
+      </div>
+      <div class="roles-wrap" id="rolesWrap"></div>
     </section>
   </main>
 </div>
@@ -104,7 +139,7 @@
 <!-- 글 보기 -->
 <div class="modal hidden" id="postModal"><div class="modal-card" id="postCard"></div></div>
 
-<!-- 글쓰기/수정 -->
+<!-- 글쓰기 -->
 <div class="modal hidden" id="editModal">
   <form class="modal-card" id="editForm">
     <div class="modal-head"><h3 id="editTitle">✏️ 새 글 쓰기</h3><button type="button" class="x" data-close>×</button></div>
@@ -113,7 +148,7 @@
       <div></div>
     </div>
     <label class="field"><span>제목</span><input name="title" maxlength="100" required placeholder="예) 별자리 포토존 + 소원 쪽지 부스"></label>
-    <label class="field"><span>내용</span><textarea name="body" rows="7" placeholder="아이디어, 준비물, 역할 분담 등을 자유롭게 적어 주세요."></textarea></label>
+    <label class="field"><span>내용</span><textarea name="body" rows="7" placeholder="아이디어, 준비물, 참고 자료 등을 자유롭게 적어 주세요."></textarea></label>
     <label class="field"><span>링크 <small>(한 줄에 하나씩 · 캔바, 구글 문서, 유튜브 등)</small></span><textarea name="links" rows="2" placeholder="https://www.canva.com/..."></textarea></label>
     <div class="field">
       <span>첨부 파일</span>
@@ -122,6 +157,45 @@
       <div class="attach-list" id="editAttachList"></div>
     </div>
     <div class="modal-actions"><button type="button" class="btn ghost" data-close>취소</button><button class="btn primary" id="editSubmit">게시하기</button></div>
+  </form>
+</div>
+
+<!-- 역할 추가/수정 -->
+<div class="modal hidden" id="roleModal">
+  <form class="modal-card" id="roleForm" autocomplete="off">
+    <div class="modal-head"><h3 id="roleTitle">🧩 역할 추가</h3><button type="button" class="x" data-close>×</button></div>
+    <div class="row2">
+      <label class="field"><span>그룹 / 팀</span><input name="group" list="groupList" maxlength="30" required placeholder="예) 포토존팀"></label>
+      <label class="field"><span>역할</span><input name="role" maxlength="40" required placeholder="예) 소품 제작"></label>
+    </div>
+    <datalist id="groupList"></datalist>
+    <div class="field">
+      <span>담당자 <small>(눌러서 선택 · 여러 명 가능)</small></span>
+      <div class="member-picker" id="memberPicker"></div>
+      <div class="add-member"><input id="customMember" maxlength="20" placeholder="목록에 없으면 이름 직접 입력 후 Enter"><button type="button" class="btn sm" id="addCustomMember">추가</button></div>
+    </div>
+    <label class="field"><span>할 일</span><textarea name="task" rows="3" maxlength="1000" placeholder="예) 별 모양 소품 20개 만들기, 재료 목록 정리"></textarea></label>
+    <div class="row2">
+      <label class="field"><span>마감</span><input name="due" type="date"></label>
+      <label class="field"><span>상태</span><select name="status"><option>할 일</option><option>진행 중</option><option>완료</option></select></label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn danger hidden" id="roleDelete">삭제</button>
+      <span style="flex:1"></span>
+      <button type="button" class="btn ghost" data-close>취소</button>
+      <button class="btn primary" id="roleSubmit">저장</button>
+    </div>
+  </form>
+</div>
+
+<!-- 새 팀 라운지 -->
+<div class="modal hidden" id="roomModal">
+  <form class="modal-card small" id="roomForm" autocomplete="off">
+    <div class="modal-head"><h3>🪐 새 팀 라운지 만들기</h3><button type="button" class="x" data-close>×</button></div>
+    <div class="field"><span>아이콘</span><div class="emoji-pick" id="emojiPick"></div></div>
+    <label class="field"><span>이름</span><input name="name" maxlength="20" required placeholder="예) 포토존팀"></label>
+    <label class="field"><span>한 줄 설명 <small>(선택)</small></span><input name="desc" maxlength="80" placeholder="예) 별자리 포토존 꾸미기"></label>
+    <div class="modal-actions"><button type="button" class="btn ghost" data-close>취소</button><button class="btn primary">만들고 입장하기</button></div>
   </form>
 </div>
 
@@ -158,21 +232,26 @@
   const $$ = (s) => [...document.querySelectorAll(s)];
   const { esc, linkify, toast } = STAR;
   const COLORS = ['#ffd166', '#ff9f9f', '#f9a8d4', '#c4b5fd', '#93c5fd', '#7dd3fc', '#5eead4', '#a3e635', '#fdba74', '#e2e8f0'];
+  const EMOJIS = ['🪐', '🌙', '☄️', '🚀', '🌈', '🎨', '📸', '🎪', '🎤', '🧁', '🛠️', '💡'];
+  const LOUNGE = '전체';
+  const STATUSES = ['할 일', '진행 중', '완료'];
 
   const S = {
     token: localStorage.getItem('star_token') || '',
     me: null, settings: null,
-    channel: '', msgs: new Map(), lastTs: 0, delrev: null, pending: [],
-    tab: 'chat', posts: [], cat: '전체', search: '',
-    timer: null, polling: false, again: false, boardTimer: null,
+    tab: 'lounge', channel: LOUNGE, room: null,
+    msgs: new Map(), lastTs: 0, delrev: null, pending: [],
+    rooms: [], loungeLast: 0,
+    seen: JSON.parse(localStorage.getItem('star_seen') || '{}'),
+    posts: [], resources: [], cat: '전체', search: '',
+    roles: [], members: [], roleView: localStorage.getItem('star_rv') || 'board',
+    timer: null, polling: false, again: false, sideTimer: null,
     signupColor: COLORS[Math.floor(Math.random() * COLORS.length)], profileColor: '',
-    edit: null, // {id?, files:[]}
+    edit: null, roleEdit: null, roomEmoji: '🪐',
   };
 
-  /* ---------------- 공통 화면 전환 ---------------- */
-  function show(view) {
-    ['setupView', 'authView', 'appView'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== view));
-  }
+  /* ---------------- 공통 ---------------- */
+  function show(view) { ['setupView', 'authView', 'appView'].forEach((v) => $('#' + v).classList.toggle('hidden', v !== view)); }
   function swatches(el, current, onPick) {
     el.innerHTML = COLORS.map((c) => `<button type="button" class="swatch ${c === current ? 'on' : ''}" style="--c:${c}" data-c="${c}" aria-label="${c}"></button>`).join('');
     el.onclick = (e) => {
@@ -181,12 +260,17 @@
       onPick(b.dataset.c);
     };
   }
-  function handleErr(e) {
+  function handleErr(e, quiet) {
     if (e.code === 'AUTH' || e.code === 'BANNED') { logout(); toast(e.message, 'err'); return true; }
+    if (!quiet) toast(e.message, 'err');
     return false;
   }
+  function saveSeen(ch, ts) {
+    if (!ts || (S.seen[ch] || 0) >= ts) return;
+    S.seen[ch] = ts; localStorage.setItem('star_seen', JSON.stringify(S.seen));
+  }
+  function canWrite() { return S.settings.boardWrite || S.me.isAdmin; }
 
-  /* ---------------- 설정 반영 ---------------- */
   function applySettings(s) {
     const prev = S.settings ? JSON.stringify(S.settings) : '';
     S.settings = s;
@@ -200,13 +284,13 @@
     $('#signupClosed').classList.toggle('hidden', s.allowSignup);
     $('#signupBtn').disabled = !s.allowSignup;
     if (S.me) {
-      const isT = S.me.isAdmin;
-      $('#composer').classList.toggle('hidden', !s.chatEnabled && !isT);
-      $('#chatLocked').classList.toggle('hidden', s.chatEnabled || isT);
-      $('#attachBtn').classList.toggle('hidden', !s.uploadEnabled && !isT);
-      $('#newPostBtn').classList.toggle('hidden', !s.boardWrite && !isT);
-      if (S.channel && s.channels.indexOf(S.channel) < 0) selectChannel(s.channels[0]);
-      else renderChannels();
+      const t = S.me.isAdmin;
+      $('#composer').classList.toggle('hidden', !s.chatEnabled && !t);
+      $('#chatLocked').classList.toggle('hidden', s.chatEnabled || t);
+      $('#attachBtn').classList.toggle('hidden', !s.uploadEnabled && !t);
+      $('#newPostBtn').classList.toggle('hidden', !s.boardWrite && !t);
+      $('#newRoleBtn').classList.toggle('hidden', !s.boardWrite && !t);
+      $('#newRoomBtn').classList.toggle('hidden', !s.allowRoomCreate && !t);
       renderCats();
     }
   }
@@ -222,17 +306,12 @@
   async function withBtn(form, fn) {
     const btn = form.querySelector('button:not([type=button])');
     const old = btn.textContent; btn.disabled = true; btn.textContent = '잠시만요…';
-    try { await fn(); } catch (e) { toast(e.message, 'err'); } finally { btn.disabled = false; btn.textContent = old; }
+    try { await fn(); } catch (e) { handleErr(e); } finally { btn.disabled = false; btn.textContent = old; }
   }
-
   $('#loginForm').onsubmit = (e) => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
-    withBtn(e.target, async () => {
-      const r = await STAR.call('login', f);
-      e.target.reset();
-      loginDone(r.token, r.user);
-    });
+    withBtn(e.target, async () => { const r = await STAR.call('login', f); e.target.reset(); loginDone(r.token, r.user); });
   };
   $('#signupForm').onsubmit = (e) => {
     e.preventDefault();
@@ -241,89 +320,108 @@
     f.color = S.signupColor;
     withBtn(e.target, async () => {
       const r = await STAR.call('signup', f);
-      e.target.reset();
-      toast(`환영해요, ${r.user.nickname}님! 🌟`, 'ok');
-      loginDone(r.token, r.user);
+      e.target.reset(); toast(`환영해요, ${r.user.nickname}님! 🌟`, 'ok'); loginDone(r.token, r.user);
     });
   };
-
-  function loginDone(token, user) {
-    S.token = token; localStorage.setItem('star_token', token);
-    S.me = user; enterApp();
-  }
+  function loginDone(token, user) { S.token = token; localStorage.setItem('star_token', token); S.me = user; enterApp(); }
   function logout() {
-    clearTimeout(S.timer); clearInterval(S.boardTimer);
+    clearTimeout(S.timer); clearInterval(S.sideTimer);
     S.token = ''; S.me = null; localStorage.removeItem('star_token');
-    S.msgs.clear(); S.lastTs = 0; S.channel = '';
+    S.msgs.clear(); S.lastTs = 0;
     show('authView');
   }
 
-  /* ---------------- 앱 진입 ---------------- */
+  /* ---------------- 앱 / 탭 ---------------- */
   function enterApp() {
     show('appView');
     renderMe();
     const s = S.settings; S.settings = null; applySettings(s);
-    const saved = localStorage.getItem('star_ch');
-    selectChannel(s.channels.indexOf(saved) >= 0 ? saved : s.channels[0]);
-    switchTab('chat');
+    openLounge();
   }
-  function renderMe() {
-    $('#meChip').innerHTML = `${STAR.avatar(S.me.nickname, S.me.color, 'sm')}<span>${esc(S.me.nickname)}</span>`;
-  }
+  function renderMe() { $('#meChip').innerHTML = `${STAR.avatar(S.me.nickname, S.me.color, 'sm')}<span>${esc(S.me.nickname)}</span>`; }
 
-  $$('.tabs button').forEach((b) => (b.onclick = () => switchTab(b.dataset.tab)));
-  function switchTab(t) {
+  $$('.tabs button').forEach((b) => (b.onclick = () => {
+    const t = b.dataset.tab;
+    if (t === 'lounge') openLounge();
+    else if (t === 'teams') { if (S.room && S.tab !== 'teams') enterRoom(S.room.id); else showTeamList(); }
+    else switchTab(t);
+  }));
+  function switchTab(t, view) {
     S.tab = t;
     $$('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
-    $('#chatView').classList.toggle('hidden', t !== 'chat');
-    $('#boardView').classList.toggle('hidden', t !== 'board');
-    clearInterval(S.boardTimer);
-    if (t === 'chat') { $('#chatDot').classList.add('hidden'); scrollBottom(true); }
-    if (t === 'board') { loadPosts(); S.boardTimer = setInterval(() => { if (!document.hidden && $('#postModal').classList.contains('hidden')) loadPosts(true); }, 25000); }
+    const v = view || ({ lounge: 'chatView', teams: 'teamsView', board: 'boardView', roles: 'rolesView' })[t];
+    ['chatView', 'teamsView', 'boardView', 'rolesView'].forEach((x) => $('#' + x).classList.toggle('hidden', x !== v));
+    clearInterval(S.sideTimer);
+    if (t === 'board') { loadBoard(); S.sideTimer = setInterval(() => { if (!document.hidden && !anyModal()) loadBoard(true); }, 25000); }
+    if (t === 'roles') { loadRoles(); S.sideTimer = setInterval(() => { if (!document.hidden && !anyModal()) loadRoles(true); }, 20000); }
+    if (t === 'teams' && v === 'teamsView') renderRooms();
+    updateDots();
   }
+  const anyModal = () => $$('.modal:not(.hidden)').length > 0;
 
   /* ---------------- 채팅 ---------------- */
-  function renderChannels() {
-    const icons = ['🌌', '💡', '🎨', '🧩', '☕', '🪐', '🌙', '🚀'];
-    $('#channelList').innerHTML = S.settings.channels.map((c, i) =>
-      `<button class="ch ${c === S.channel ? 'on' : ''}" data-ch="${esc(c)}">${icons[i % icons.length]} ${esc(c)}</button>`).join('');
+  function openLounge() {
+    S.room = null;
+    setChannel(LOUNGE);
+    switchTab('lounge', 'chatView');
+    $('#chHead').textContent = '🌌 전체 라운지';
+    $('#backToTeams').classList.add('hidden');
+    $('#delRoomBtn').classList.add('hidden');
+    scrollBottom(true);
   }
-  $('#channelList').onclick = (e) => { const b = e.target.closest('[data-ch]'); if (b && b.dataset.ch !== S.channel) selectChannel(b.dataset.ch); };
+  function enterRoom(id) {
+    const r = S.rooms.find((x) => x.id === id);
+    if (!r) { toast('없는 팀 라운지예요.', 'err'); return showTeamList(); }
+    S.room = r;
+    setChannel('team:' + id);
+    switchTab('teams', 'chatView');
+    $('#chHead').innerHTML = `${esc(r.emoji)} ${esc(r.name)}${r.desc ? ` <small class="muted">${esc(r.desc)}</small>` : ''}`;
+    $('#backToTeams').classList.remove('hidden');
+    $('#delRoomBtn').classList.toggle('hidden', !(S.me.isAdmin || r.userId === S.me.id));
+    scrollBottom(true);
+  }
+  function showTeamList() { switchTab('teams', 'teamsView'); }
+  $('#backToTeams').onclick = showTeamList;
+  $('#delRoomBtn').onclick = async () => {
+    if (!S.room) return;
+    if (!(await STAR.ask({ title: `'${S.room.name}' 팀 라운지를 삭제할까요?`, desc: '목록에서 사라지고 더 이상 대화할 수 없어요. (대화 기록은 선생님 스프레드시트에 남아요)', ok: '삭제', danger: true }))) return;
+    try {
+      await STAR.call('deleteRoom', { id: S.room.id }, S.token);
+      S.rooms = S.rooms.filter((x) => x.id !== S.room.id); S.room = null;
+      toast('삭제했어요.', 'ok'); setChannel(LOUNGE); showTeamList();
+    } catch (e) { handleErr(e); }
+  };
 
-  function selectChannel(ch) {
+  function setChannel(ch) {
+    if (S.channel === ch && S.msgs.size) return;
     S.channel = ch; S.msgs = new Map(); S.lastTs = 0; S.pending = [];
-    localStorage.setItem('star_ch', ch);
-    $('#chHead').textContent = '# ' + ch;
-    $('#chSub').textContent = '';
     $('#msgs').innerHTML = '<div class="loading">✨ 별빛을 불러오는 중…</div>';
-    renderChannels();
     pollNow();
   }
 
-  function pollNow() {
-    clearTimeout(S.timer);
-    if (S.polling) { S.again = true; return; }
-    poll();
-  }
+  function pollNow() { clearTimeout(S.timer); if (S.polling) { S.again = true; return; } poll(); }
   async function poll() {
     if (!S.token) return;
     S.polling = true;
     const ch = S.channel, since = S.lastTs;
     try {
       const r = await STAR.call('poll', { channel: ch, since }, S.token);
-      if (ch !== S.channel || !S.token) return;
+      if (!S.token) return;
       applySettings(r.settings);
       renderOnline(r.online);
-      if (S.delrev !== null && r.delrev !== S.delrev && since) {
-        S.delrev = r.delrev; S.lastTs = 0; S.msgs.clear(); S.again = true; return;
-      }
+      S.rooms = r.rooms; S.loungeLast = r.loungeLast;
+      renderQuickRooms();
+      if (S.tab === 'teams' && !$('#teamsView').classList.contains('hidden')) renderRooms();
+      if (ch !== S.channel) return;
+      if (r.roomGone) { toast('이 팀 라운지가 삭제되었어요.', 'err'); S.room = null; S.channel = LOUNGE; showTeamList(); return; }
+      if (S.delrev !== null && r.delrev !== S.delrev && since) { S.delrev = r.delrev; S.lastTs = 0; S.msgs.clear(); S.again = true; return; }
       S.delrev = r.delrev;
       addMsgs(r.messages, !since, true);
     } catch (e) {
-      if (handleErr(e)) return;
-      if (e.code !== 'NET' && e.code !== 'BUSY') console.warn(e);
+      if (handleErr(e, true)) return;
     } finally {
       S.polling = false;
+      updateDots();
       if (S.token) {
         if (S.again) { S.again = false; S.timer = setTimeout(poll, 50); }
         else S.timer = setTimeout(poll, document.hidden ? 15000 : 3000);
@@ -332,19 +430,26 @@
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.token) pollNow(); });
 
+  function chatVisible() { return !$('#chatView').classList.contains('hidden'); }
   function addMsgs(list, replace, advance) {
-    let fresh = 0;
     if (replace) S.msgs.clear();
     for (const m of list) {
-      if (!S.msgs.has(m.id)) { S.msgs.set(m.id, m); if (m.userId !== S.me.id) fresh++; }
+      if (!S.msgs.has(m.id)) S.msgs.set(m.id, m);
       if (advance && m.ts > S.lastTs) S.lastTs = m.ts;
     }
     if (S.msgs.size > 500) {
       const arr = [...S.msgs.values()].sort((a, b) => a.ts - b.ts).slice(-400);
       S.msgs = new Map(arr.map((m) => [m.id, m]));
     }
+    if (chatVisible()) saveSeen(S.channel, S.lastTs);
     if (replace || list.length) renderMsgs(replace);
-    if (!replace && fresh && S.tab !== 'chat') $('#chatDot').classList.remove('hidden');
+  }
+
+  function updateDots() {
+    const loungeNew = S.loungeLast > (S.seen[LOUNGE] || 0) && !(chatVisible() && S.channel === LOUNGE);
+    $('#dotLounge').classList.toggle('hidden', !loungeNew);
+    const teamNew = S.rooms.some((r) => r.last > (S.seen['team:' + r.id] || 0) && !(chatVisible() && S.channel === 'team:' + r.id));
+    $('#dotTeams').classList.toggle('hidden', !teamNew);
   }
 
   function msgContent(m) {
@@ -357,7 +462,6 @@
     }
     return linkify(m.text);
   }
-
   function nearBottom() { const el = $('#msgs'); return el.scrollHeight - el.scrollTop - el.clientHeight < 120; }
   function scrollBottom(force) { const el = $('#msgs'); if (force || nearBottom()) requestAnimationFrame(() => (el.scrollTop = el.scrollHeight)); }
 
@@ -367,7 +471,7 @@
     const arr = [...S.msgs.values()].sort((a, b) => a.ts - b.ts);
     let html = '', prev = null, prevDay = '';
     if (!arr.length && !S.pending.length) {
-      html = `<div class="empty"><span class="big">🌠</span>아직 조용한 채널이에요.<br>첫 메시지로 별을 띄워 보세요!</div>`;
+      html = `<div class="empty"><span class="big">🌠</span>아직 조용해요.<br>첫 메시지로 별을 띄워 보세요!</div>`;
     }
     for (const m of arr) {
       const day = STAR.dateLabel(m.ts);
@@ -383,82 +487,71 @@
         </div></div>`;
       prev = m;
     }
-    for (const p of S.pending) {
-      html += `<div class="msg mine pending"><div class="body"><div class="line"><div class="bubble">${p.html}</div><span class="t">보내는 중…</span></div></div></div>`;
-    }
+    for (const p of S.pending) html += `<div class="msg mine pending"><div class="body"><div class="line"><div class="bubble">${p.html}</div><span class="t">보내는 중…</span></div></div></div>`;
     el.innerHTML = html;
     if (stick) scrollBottom(true);
   }
-
   $('#msgs').onclick = async (e) => {
     const b = e.target.closest('[data-del]'); if (!b) return;
-    const ok = await STAR.ask({ title: '메시지를 삭제할까요?', ok: '삭제', danger: true });
-    if (!ok) return;
+    if (!(await STAR.ask({ title: '메시지를 삭제할까요?', ok: '삭제', danger: true }))) return;
     try { await STAR.call('deleteMessage', { id: b.dataset.del }, S.token); S.msgs.delete(b.dataset.del); renderMsgs(); }
-    catch (er) { if (!handleErr(er)) toast(er.message, 'err'); }
+    catch (er) { handleErr(er); }
   };
 
   const input = $('#msgInput');
   function autosize() { input.style.height = 'auto'; input.style.height = Math.min(140, input.scrollHeight) + 'px'; }
   input.addEventListener('input', autosize);
   input.addEventListener('keydown', (e) => {
-    if (e.isComposing || e.keyCode === 229) return; // 한글 입력 중 Enter 무시
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText(); }
   });
   $('#composer').onsubmit = (e) => { e.preventDefault(); sendText(); };
 
   async function sendText() {
-    const text = input.value.trim();
-    if (!text) return;
+    const text = input.value.trim(); if (!text) return;
     input.value = ''; autosize();
-    const p = { html: linkify(text) };
-    S.pending.push(p); renderMsgs(true);
+    const p = { html: linkify(text) }; S.pending.push(p); renderMsgs(true);
+    const ch = S.channel;
     try {
-      const r = await STAR.call('sendMessage', { channel: S.channel, text }, S.token);
+      const r = await STAR.call('sendMessage', { channel: ch, text }, S.token);
       S.pending = S.pending.filter((x) => x !== p);
-      addMsgs([r.message], false, false);
+      if (ch === S.channel) addMsgs([r.message], false, false);
       pollNow();
     } catch (e) {
       S.pending = S.pending.filter((x) => x !== p); renderMsgs();
-      if (!handleErr(e)) { toast(e.message, 'err'); if (!input.value) { input.value = text; autosize(); } }
+      if (!handleErr(e) && !input.value) { input.value = text; autosize(); }
     }
   }
-
   async function uploadOne(file) {
     const max = S.settings.maxFileMB * 1024 * 1024;
     if (file.size > max) throw new Error(`${file.name}: ${S.settings.maxFileMB}MB 이하만 올릴 수 있어요.`);
     const data = await STAR.fileToBase64(file);
-    const r = await STAR.call('uploadFile', { name: file.name, mime: file.type, data }, S.token);
-    return r.file;
+    return (await STAR.call('uploadFile', { name: file.name, mime: file.type, data }, S.token)).file;
   }
-
   async function sendFiles(files) {
     if (!files.length) return;
     if (!S.settings.uploadEnabled && !S.me.isAdmin) return toast('지금은 파일 업로드가 꺼져 있어요.', 'err');
+    const ch = S.channel;
     for (const f of files) {
       const p = { html: `⏳ <b>${esc(f.name)}</b> 업로드 중… (${STAR.fmtSize(f.size)})` };
       S.pending.push(p); renderMsgs(true);
       try {
         const up = await uploadOne(f);
-        const r = await STAR.call('sendMessage', { channel: S.channel, kind: 'file', url: up.url, fileName: up.name }, S.token);
-        addMsgs([r.message], false, false);
-      } catch (e) { if (!handleErr(e)) toast(e.message, 'err'); }
+        const r = await STAR.call('sendMessage', { channel: ch, kind: 'file', url: up.url, fileName: up.name }, S.token);
+        if (ch === S.channel) addMsgs([r.message], false, false);
+      } catch (e) { handleErr(e); }
       S.pending = S.pending.filter((x) => x !== p); renderMsgs();
     }
     pollNow();
   }
   $('#attachBtn').onclick = () => $('#fileInput').click();
   $('#fileInput').onchange = (e) => { sendFiles([...e.target.files]); e.target.value = ''; };
-  const cm = $('#chatMain');
-  let dragN = 0;
+  const cm = $('#chatMain'); let dragN = 0;
   cm.addEventListener('dragenter', (e) => { if ([...e.dataTransfer.types].includes('Files')) { dragN++; cm.classList.add('dragging'); } });
   cm.addEventListener('dragleave', () => { if (--dragN <= 0) { dragN = 0; cm.classList.remove('dragging'); } });
   cm.addEventListener('dragover', (e) => e.preventDefault());
   cm.addEventListener('drop', (e) => { e.preventDefault(); dragN = 0; cm.classList.remove('dragging'); sendFiles([...e.dataTransfer.files]); });
-  input.addEventListener('paste', (e) => {
-    const files = [...(e.clipboardData?.files || [])];
-    if (files.length) { e.preventDefault(); sendFiles(files); }
-  });
+  input.addEventListener('paste', (e) => { const files = [...(e.clipboardData?.files || [])]; if (files.length) { e.preventDefault(); sendFiles(files); } });
 
   function renderOnline(list) {
     $('#onlineCount').textContent = list.length ? `· ${list.length}` : '';
@@ -468,35 +561,130 @@
       : '<div class="muted" style="padding:4px 8px;font-size:13px">아무도 없어요</div>';
   }
 
-  /* ---------------- 게시판 ---------------- */
+  /* ---------------- 팀 라운지 ---------------- */
+  function roomNew(r) { return r.last > (S.seen['team:' + r.id] || 0); }
+  function renderQuickRooms() {
+    $('#quickRooms').innerHTML = (S.rooms.length ? S.rooms.map((r) =>
+      `<button class="ch ${S.channel === 'team:' + r.id ? 'on' : ''}" data-room="${r.id}">${esc(r.emoji)} ${esc(r.name)}${roomNew(r) && S.channel !== 'team:' + r.id ? '<i class="ndot"></i>' : ''}</button>`).join('')
+      : '<div class="muted" style="padding:4px 8px;font-size:13px">아직 팀 라운지가 없어요</div>') +
+      `<button class="ch" data-goteams>＋ 팀 라운지 목록</button>`;
+  }
+  $('#quickRooms').onclick = (e) => {
+    const b = e.target.closest('[data-room]'); if (b) return enterRoom(b.dataset.room);
+    if (e.target.closest('[data-goteams]')) showTeamList();
+  };
+  function renderRooms() {
+    const g = $('#roomGrid');
+    if (!S.rooms.length) {
+      g.innerHTML = `<div class="empty glass" style="border-radius:18px;grid-column:1/-1"><span class="big">🪐</span>아직 팀 라운지가 없어요.<br>${S.settings.allowRoomCreate || S.me.isAdmin ? '＋ 새 팀 라운지 버튼으로 우리 팀 방을 만들어 보세요!' : '선생님께 팀 라운지를 만들어 달라고 요청하세요.'}</div>`;
+      return;
+    }
+    const list = S.rooms.slice().sort((a, b) => (b.last || b.ts) - (a.last || a.ts));
+    g.innerHTML = list.map((r) => `
+      <button class="room-card glass ${roomNew(r) ? 'has-new' : ''}" data-room="${r.id}">
+        <span class="room-emoji">${esc(r.emoji)}</span>
+        <span class="room-info">
+          <b>${esc(r.name)}${roomNew(r) ? ' <i class="new-pill">NEW</i>' : ''}</b>
+          ${r.desc ? `<span class="room-desc">${esc(r.desc)}</span>` : ''}
+          <small>만든 별: ${esc(r.creatorNick)} · ${r.last ? '최근 대화 ' + STAR.ago(r.last) : '아직 대화 없음'}</small>
+        </span>
+        <span class="room-enter">입장 →</span>
+      </button>`).join('');
+  }
+  $('#roomGrid').onclick = (e) => { const b = e.target.closest('[data-room]'); if (b) enterRoom(b.dataset.room); };
+  $('#newRoomBtn').onclick = () => {
+    $('#roomForm').reset(); S.roomEmoji = EMOJIS[0];
+    $('#emojiPick').innerHTML = EMOJIS.map((x, i) => `<button type="button" class="${i === 0 ? 'on' : ''}" data-e="${x}">${x}</button>`).join('');
+    openModal('roomModal'); setTimeout(() => $('#roomForm').name.focus(), 30);
+  };
+  $('#emojiPick').onclick = (e) => {
+    const b = e.target.closest('[data-e]'); if (!b) return;
+    S.roomEmoji = b.dataset.e; $$('#emojiPick button').forEach((x) => x.classList.toggle('on', x === b));
+  };
+  $('#roomForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target;
+    withBtn(f, async () => {
+      const r = await STAR.call('createRoom', { name: f.name.value, desc: f.desc.value, emoji: S.roomEmoji }, S.token);
+      S.rooms.push(r.room); closeModal('roomModal'); toast('팀 라운지를 만들었어요! 🪐', 'ok');
+      enterRoom(r.room.id);
+    });
+  };
+
+  /* ---------------- 게시판 (게시글 + 채팅 자료) ---------------- */
   function renderCats() {
-    const cats = ['전체', '공지', ...S.settings.categories.filter((c) => c !== '공지')];
+    const cats = ['전체', '📝 게시글', '💬 채팅 자료', '공지', ...S.settings.categories.filter((c) => c !== '공지')];
     if (cats.indexOf(S.cat) < 0) S.cat = '전체';
     $('#catChips').innerHTML = cats.map((c) => `<button class="chip ${c === S.cat ? 'on' : ''}" data-cat="${esc(c)}">${c === '전체' ? '✨ ' : ''}${esc(c)}</button>`).join('');
   }
-  $('#catChips').onclick = (e) => { const b = e.target.closest('[data-cat]'); if (!b) return; S.cat = b.dataset.cat; renderCats(); renderPosts(); };
-  $('#boardSearch').oninput = (e) => { S.search = e.target.value.trim().toLowerCase(); renderPosts(); };
+  $('#catChips').onclick = (e) => { const b = e.target.closest('[data-cat]'); if (!b) return; S.cat = b.dataset.cat; renderCats(); renderFeed(); };
+  $('#boardSearch').oninput = (e) => { S.search = e.target.value.trim().toLowerCase(); renderFeed(); };
 
-  async function loadPosts(quiet) {
-    if (!quiet && !S.posts.length) $('#postGrid').innerHTML = '<div class="loading">✨ 게시판을 불러오는 중…</div>';
-    try { const r = await STAR.call('listPosts', {}, S.token); S.posts = r.posts; renderPosts(); }
-    catch (e) { if (!handleErr(e) && !quiet) toast(e.message, 'err'); }
+  async function loadBoard(quiet) {
+    if (!quiet && !S.posts.length && !S.resources.length) $('#feed').innerHTML = '<div class="loading">✨ 자료를 모으는 중…</div>';
+    try { const r = await STAR.call('listPosts', {}, S.token); S.posts = r.posts; S.resources = r.resources || []; renderFeed(); }
+    catch (e) { handleErr(e, quiet); }
   }
-  function renderPosts() {
-    const list = S.posts.filter((p) => (S.cat === '전체' || p.category === S.cat) &&
-      (!S.search || (p.title + ' ' + p.excerpt + ' ' + p.nickname).toLowerCase().includes(S.search)));
-    $('#postGrid').innerHTML = list.length ? list.map((p) => `
-      <article class="post-card glass ${p.pinned ? 'pinned' : ''}" data-post="${p.id}">
-        ${p.thumb ? `<div class="pthumb" style="background-image:url('${STAR.thumb(p.thumb, 600)}')"></div>` : ''}
-        <div class="pc-top"><span class="cat ${p.category === '공지' ? 'notice' : ''}">${esc(p.category)}</span>${p.pinned ? '<span class="pin">📌 고정</span>' : ''}</div>
-        <h3>${esc(p.title)}</h3>
-        ${p.excerpt ? `<p>${esc(p.excerpt)}</p>` : ''}
-        <div class="pc-foot">${STAR.avatar(p.nickname, p.color, 'sm')}<span>${esc(p.nickname)} · ${STAR.ago(p.ts)}</span>
-          <span class="meta"><span>⭐ ${p.starCount}</span><span>💬 ${p.commentCount}</span>${p.fileCount ? `<span>📎 ${p.fileCount}</span>` : ''}${p.linkCount ? `<span>🔗 ${p.linkCount}</span>` : ''}</span></div>
-      </article>`).join('')
-      : `<div class="empty glass" style="border-radius:18px"><span class="big">🔭</span>${S.search ? '검색 결과가 없어요.' : '아직 글이 없어요. 첫 번째 별을 띄워 보세요 ✨'}</div>`;
+  function firstUrl(t) { const m = String(t).match(/https?:\/\/[^\s<]+[^\s<.,;:!?)\]]/); return m ? m[0] : ''; }
+  function feedItems() {
+    const items = [];
+    for (const p of S.posts) items.push({ type: 'post', ts: p.ts, p, text: (p.title + ' ' + p.excerpt + ' ' + p.nickname + ' ' + p.category).toLowerCase() });
+    for (const m of S.resources) items.push({ type: 'res', ts: m.ts, m, text: (m.fileName + ' ' + m.text + ' ' + m.nickname + ' ' + m.channelLabel).toLowerCase() });
+    return items.filter((it) => {
+      if (S.search && !it.text.includes(S.search)) return false;
+      if (S.cat === '전체') return true;
+      if (S.cat === '📝 게시글') return it.type === 'post';
+      if (S.cat === '💬 채팅 자료') return it.type === 'res';
+      return it.type === 'post' && it.p.category === S.cat;
+    }).sort((a, b) => b.ts - a.ts);
   }
-  $('#postGrid').onclick = (e) => { const c = e.target.closest('[data-post]'); if (c) openPost(c.dataset.post); };
+  function feedRow(it) {
+    if (it.type === 'post') {
+      const p = it.p;
+      const thumb = p.thumb ? `<span class="fr-thumb" style="background-image:url('${STAR.thumb(p.thumb, 200)}')"></span>` : `<span class="fr-icon">${p.category === '공지' ? '📢' : '📝'}</span>`;
+      return `<div class="feed-row ${p.pinned ? 'pinned' : ''}" data-post="${p.id}">
+        ${thumb}
+        <div class="fr-main">
+          <div class="fr-title">${p.pinned ? '📌 ' : ''}${esc(p.title)}</div>
+          <div class="fr-meta"><span class="cat ${p.category === '공지' ? 'notice' : ''}">${esc(p.category)}</span>${STAR.avatar(p.nickname, p.color, 'xs')}<span>${esc(p.nickname)}</span><span>· ${STAR.time(p.ts)}</span>${p.excerpt ? `<span class="fr-ex">${esc(p.excerpt.replace(/\s+/g, ' ').slice(0, 70))}</span>` : ''}</div>
+        </div>
+        <div class="fr-side"><span>⭐ ${p.starCount}</span><span>💬 ${p.commentCount}</span>${p.fileCount ? `<span>📎 ${p.fileCount}</span>` : ''}${p.linkCount ? `<span>🔗 ${p.linkCount}</span>` : ''}</div>
+      </div>`;
+    }
+    const m = it.m;
+    let icon, title, url;
+    if (m.kind === 'file') {
+      url = m.url; title = m.fileName;
+      const id = STAR.driveId(m.url);
+      icon = id && STAR.isImage(m.fileName) ? `<span class="fr-thumb" style="background-image:url('${STAR.thumb(id, 200)}')"></span>` : `<span class="fr-icon">${STAR.fileIcon(m.fileName)}</span>`;
+    } else {
+      url = firstUrl(m.text); title = m.text.replace(/\s+/g, ' ').slice(0, 90);
+      icon = `<span class="fr-icon">🔗</span>`;
+    }
+    return `<a class="feed-row res" href="${esc(url)}" target="_blank" rel="noopener">
+      ${icon}
+      <div class="fr-main">
+        <div class="fr-title">${esc(title)}</div>
+        <div class="fr-meta"><span class="cat chat">💬 ${esc(m.channelLabel)}</span>${STAR.avatar(m.nickname, m.color, 'xs')}<span>${esc(m.nickname)}</span><span>· ${STAR.time(m.ts)}</span>${m.kind !== 'file' && url ? `<span class="fr-ex">${esc(STAR.domain(url))}</span>` : ''}</div>
+      </div>
+      <div class="fr-side"><span class="open">열기 ↗</span></div>
+    </a>`;
+  }
+  function renderFeed() {
+    const items = feedItems();
+    const pinned = items.filter((it) => it.type === 'post' && it.p.pinned);
+    const rest = items.filter((it) => !(it.type === 'post' && it.p.pinned));
+    let html = '';
+    if (pinned.length) html += `<div class="feed-day">📌 고정된 글</div>` + pinned.map(feedRow).join('');
+    let day = '';
+    for (const it of rest) {
+      const d = STAR.dateLabel(it.ts);
+      if (d !== day) { html += `<div class="feed-day">${d}</div>`; day = d; }
+      html += feedRow(it);
+    }
+    $('#feed').innerHTML = html || `<div class="empty"><span class="big">🔭</span>${S.search ? '검색 결과가 없어요.' : '아직 자료가 없어요. 글을 쓰거나 채팅에 파일·링크를 올리면 여기에 차곡차곡 모여요 ✨'}</div>`;
+  }
+  $('#feed').onclick = (e) => { const r = e.target.closest('[data-post]'); if (r) openPost(r.dataset.post); };
 
   function openModal(id) { $('#' + id).classList.remove('hidden'); }
   function closeModal(id) { $('#' + id).classList.add('hidden'); }
@@ -510,13 +698,12 @@
   async function openPost(id) {
     $('#postCard').innerHTML = '<div class="loading">✨ 불러오는 중…</div>';
     openModal('postModal');
-    try { const r = await STAR.call('getPost', { id }, S.token); current = r; renderPost(); }
-    catch (e) { closeModal('postModal'); if (!handleErr(e)) toast(e.message, 'err'); loadPosts(true); }
+    try { current = await STAR.call('getPost', { id }, S.token); renderPost(); }
+    catch (e) { closeModal('postModal'); handleErr(e); loadBoard(true); }
   }
   function renderPost() {
     const { post: p, comments } = current;
-    const mine = p.userId === S.me.id, can = mine || S.me.isAdmin;
-    const canWrite = S.settings.boardWrite || S.me.isAdmin;
+    const can = p.userId === S.me.id || S.me.isAdmin;
     $('#postCard').innerHTML = `
       <div class="modal-head"><span class="cat ${p.category === '공지' ? 'notice' : ''}">${esc(p.category)}</span>${p.pinned ? '<span class="pin">📌 고정</span>' : ''}<button class="x" data-close>×</button></div>
       <h2 class="post-title">${esc(p.title)}</h2>
@@ -536,27 +723,27 @@
       <div class="comments">
         <h4>💬 댓글 ${comments.length}</h4>
         ${comments.map((c) => `<div class="cmt">${STAR.avatar(c.nickname, c.color, 'sm')}<div class="c-body"><div class="c-meta"><b>${esc(c.nickname)}</b>${c.userId === 'admin' ? '<span class="badge">선생님</span> ' : ''}${STAR.ago(c.ts)} ${(c.userId === S.me.id || S.me.isAdmin) ? `<button class="del" data-cdel="${c.id}">삭제</button>` : ''}</div><div class="c-text">${linkify(c.text)}</div></div></div>`).join('') || '<div class="muted" style="font-size:13.5px">첫 댓글을 남겨 보세요!</div>'}
-        ${canWrite ? `<form class="cmt-form" id="cmtForm"><input name="text" placeholder="댓글을 입력하세요" maxlength="1000" autocomplete="off"><button class="btn primary">등록</button></form>` : ''}
+        ${canWrite() ? `<form class="cmt-form" id="cmtForm"><input name="text" placeholder="댓글을 입력하세요" maxlength="1000" autocomplete="off"><button class="btn primary">등록</button></form>` : ''}
       </div>`;
     $('#starBtn').onclick = async () => {
       try {
         const r = await STAR.call('toggleStar', { id: p.id }, S.token);
         p.starred = r.starred; p.starCount = r.starCount; renderPost();
-        const lp = S.posts.find((x) => x.id === p.id); if (lp) { lp.starCount = r.starCount; renderPosts(); }
-      } catch (e) { if (!handleErr(e)) toast(e.message, 'err'); }
+        const lp = S.posts.find((x) => x.id === p.id); if (lp) { lp.starCount = r.starCount; renderFeed(); }
+      } catch (e) { handleErr(e); }
     };
     if (can) {
       $('#editPostBtn').onclick = () => { closeModal('postModal'); openEditor(p); };
       $('#delPostBtn').onclick = async () => {
         if (!(await STAR.ask({ title: '이 글을 삭제할까요?', desc: '삭제한 글은 되돌릴 수 없어요.', ok: '삭제', danger: true }))) return;
-        try { await STAR.call('deletePost', { id: p.id }, S.token); closeModal('postModal'); toast('삭제했어요.', 'ok'); loadPosts(true); }
-        catch (e) { if (!handleErr(e)) toast(e.message, 'err'); }
+        try { await STAR.call('deletePost', { id: p.id }, S.token); closeModal('postModal'); toast('삭제했어요.', 'ok'); loadBoard(true); }
+        catch (e) { handleErr(e); }
       };
     }
     $$('#postCard [data-cdel]').forEach((b) => (b.onclick = async () => {
       if (!(await STAR.ask({ title: '댓글을 삭제할까요?', ok: '삭제', danger: true }))) return;
-      try { await STAR.call('deleteComment', { id: b.dataset.cdel }, S.token); current.comments = current.comments.filter((c) => c.id !== b.dataset.cdel); renderPost(); loadPosts(true); }
-      catch (e) { if (!handleErr(e)) toast(e.message, 'err'); }
+      try { await STAR.call('deleteComment', { id: b.dataset.cdel }, S.token); current.comments = current.comments.filter((c) => c.id !== b.dataset.cdel); renderPost(); loadBoard(true); }
+      catch (e) { handleErr(e); }
     }));
     const cf = $('#cmtForm');
     if (cf) cf.onsubmit = async (e) => {
@@ -565,44 +752,36 @@
       cf.querySelector('button').disabled = true;
       try {
         const r = await STAR.call('addComment', { postId: p.id, text }, S.token);
-        current.comments.push(r.comment); renderPost(); loadPosts(true);
+        current.comments.push(r.comment); renderPost(); loadBoard(true);
         setTimeout(() => $('#cmtForm')?.text.focus(), 20);
-      } catch (er) { if (!handleErr(er)) toast(er.message, 'err'); cf.querySelector('button').disabled = false; }
+      } catch (er) { handleErr(er); cf.querySelector('button').disabled = false; }
     };
   }
 
-  /* ----- 글쓰기 ----- */
   $('#newPostBtn').onclick = () => openEditor(null);
   function openEditor(p) {
-    const f = $('#editForm');
-    f.reset();
+    const f = $('#editForm'); f.reset();
     const cats = S.me.isAdmin ? ['공지', ...S.settings.categories.filter((c) => c !== '공지')] : S.settings.categories;
     $('#editCat').innerHTML = cats.map((c) => `<option>${esc(c)}</option>`).join('');
     S.edit = { id: p ? p.id : null, files: p ? p.files.slice() : [], uploading: 0 };
     $('#editTitle').textContent = p ? '✏️ 글 수정하기' : '✏️ 새 글 쓰기';
     $('#editSubmit').textContent = p ? '수정 완료' : '게시하기';
-    if (p) {
-      f.title.value = p.title; f.body.value = p.body; f.links.value = p.links.join('\n');
-      if (cats.indexOf(p.category) >= 0) f.category.value = p.category;
-    } else if (S.cat !== '전체' && cats.indexOf(S.cat) >= 0) f.category.value = S.cat;
+    if (p) { f.title.value = p.title; f.body.value = p.body; f.links.value = p.links.join('\n'); if (cats.indexOf(p.category) >= 0) f.category.value = p.category; }
+    else if (cats.indexOf(S.cat) >= 0) f.category.value = S.cat;
     $('#editAttachBtn').classList.toggle('hidden', !S.settings.uploadEnabled && !S.me.isAdmin);
-    renderAttach();
-    openModal('editModal');
-    setTimeout(() => f.title.focus(), 30);
+    renderAttach(); openModal('editModal'); setTimeout(() => f.title.focus(), 30);
   }
-  function renderAttach(pendingNames = []) {
+  function renderAttach(pend = []) {
     $('#editAttachList').innerHTML = S.edit.files.map((f, i) => `<span class="attach-item">${STAR.fileIcon(f.name)} ${esc(f.name)} <button type="button" data-rm="${i}">×</button></span>`).join('') +
-      pendingNames.map((n) => `<span class="attach-item up">⏳ ${esc(n)}</span>`).join('');
+      pend.map((n) => `<span class="attach-item up">⏳ ${esc(n)}</span>`).join('');
   }
   $('#editAttachList').onclick = (e) => { const b = e.target.closest('[data-rm]'); if (b) { S.edit.files.splice(+b.dataset.rm, 1); renderAttach(); } };
   $('#editAttachBtn').onclick = () => $('#editFileInput').click();
   $('#editFileInput').onchange = async (e) => {
     const files = [...e.target.files]; e.target.value = '';
-    const pend = files.map((f) => f.name);
-    S.edit.uploading += files.length; renderAttach(pend);
+    const pend = files.map((f) => f.name); S.edit.uploading += files.length; renderAttach(pend);
     for (const f of files) {
-      try { const up = await uploadOne(f); S.edit.files.push(up); }
-      catch (er) { if (!handleErr(er)) toast(er.message, 'err'); }
+      try { S.edit.files.push(await uploadOne(f)); } catch (er) { handleErr(er); }
       pend.shift(); S.edit.uploading--; renderAttach(pend);
     }
   };
@@ -614,13 +793,158 @@
       links: f.links.value.split('\n').map((x) => x.trim()).filter(Boolean), files: S.edit.files };
     const btn = $('#editSubmit'); btn.disabled = true;
     try {
-      if (S.edit.id) await STAR.call('updatePost', payload, S.token);
-      else await STAR.call('createPost', payload, S.token);
+      await STAR.call(S.edit.id ? 'updatePost' : 'createPost', payload, S.token);
       closeModal('editModal'); toast(S.edit.id ? '수정했어요.' : '게시했어요! ⭐', 'ok');
-      await loadPosts(true);
-      if (S.edit.id) openPost(S.edit.id);
-    } catch (er) { if (!handleErr(er)) toast(er.message, 'err'); }
-    finally { btn.disabled = false; }
+      await loadBoard(true); if (S.edit.id) openPost(S.edit.id);
+    } catch (er) { handleErr(er); } finally { btn.disabled = false; }
+  };
+
+  /* ---------------- 역할분담 ---------------- */
+  async function loadRoles(quiet) {
+    if (!quiet && !S.roles.length) $('#rolesWrap').innerHTML = '<div class="loading">✨ 역할분담표를 불러오는 중…</div>';
+    try {
+      const [r, m] = await Promise.all([STAR.call('listRoles', {}, S.token), S.members.length && quiet ? null : STAR.call('listMembers', {}, S.token)]);
+      S.roles = r.roles.sort((a, b) => a.ts - b.ts);
+      if (m) S.members = m.members;
+      renderRoles();
+    } catch (e) { handleErr(e, quiet); }
+  }
+  function memberColor(nick) { const m = S.members.find((x) => x.nickname === nick); return m ? m.color : '#6b7280'; }
+  function memberChips(list) {
+    return list.length ? list.map((n) => `<span class="mchip">${STAR.avatar(n, memberColor(n), 'xs')}${esc(n)}</span>`).join('') : '<span class="mchip empty">담당자 미정</span>';
+  }
+  function fmtDue(d) {
+    if (!d) return '';
+    const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return esc(d);
+    const dt = new Date(+m[1], +m[2] - 1, +m[3]);
+    const days = Math.round((dt - new Date(new Date().toDateString())) / 864e5);
+    const label = `${+m[2]}/${+m[3]}(${'일월화수목금토'[dt.getDay()]})`;
+    const hint = days < 0 ? `<b class="late">${-days}일 지남</b>` : days === 0 ? '<b class="today">오늘</b>' : days <= 3 ? `<b class="soon">D-${days}</b>` : `D-${days}`;
+    return `📅 ${label} ${hint}`;
+  }
+  const statusCls = (s) => ({ '할 일': 'todo', '진행 중': 'doing', '완료': 'done' })[s] || 'todo';
+  function groupsOf() {
+    const g = []; S.roles.forEach((r) => { if (g.indexOf(r.group) < 0) g.push(r.group); }); return g;
+  }
+  function renderRoles() {
+    const total = S.roles.length, done = S.roles.filter((r) => r.status === '완료').length, doing = S.roles.filter((r) => r.status === '진행 중').length;
+    const unassigned = S.roles.filter((r) => !r.members.length).length;
+    $('#roleSummary').innerHTML = total ? `
+      <div class="prog"><i style="width:${(done / total) * 100}%"></i><i class="doing" style="width:${(doing / total) * 100}%"></i></div>
+      <span>전체 ${total} · <b class="c-done">완료 ${done}</b> · <b class="c-doing">진행 중 ${doing}</b> · 할 일 ${total - done - doing}${unassigned ? ` · <b class="late">담당자 미정 ${unassigned}</b>` : ''}</span>` : '<span class="muted">역할을 추가해서 누가 무엇을 맡을지 정해 보세요.</span>';
+    $$('#roleViewSeg button').forEach((b) => b.classList.toggle('on', b.dataset.rv === S.roleView));
+    const w = $('#rolesWrap');
+    if (!total) {
+      w.innerHTML = `<div class="empty glass" style="border-radius:18px"><span class="big">🧩</span>아직 정한 역할이 없어요.<br>＋ 역할 추가 버튼으로 그룹과 할 일을 정해 보세요!</div>`;
+      return;
+    }
+    if (S.roleView === 'table') {
+      w.innerHTML = `<div class="table-wrap glass"><table><thead><tr><th>그룹</th><th>역할</th><th>담당</th><th>할 일</th><th>마감</th><th>상태</th></tr></thead><tbody>
+        ${groupsOf().map((g) => S.roles.filter((r) => r.group === g).map((r, i, arr) => `<tr class="click" data-role="${r.id}">
+          ${i === 0 ? `<td rowspan="${arr.length}" class="g-cell"><b>${esc(g)}</b></td>` : ''}
+          <td><b>${esc(r.role)}</b></td><td class="wrap">${memberChips(r.members)}</td><td class="wrap task-cell">${esc(r.task)}</td><td>${fmtDue(r.due)}</td>
+          <td><button class="spill ${statusCls(r.status)}" data-cycle="${r.id}">${r.status}</button></td></tr>`).join('')).join('')}
+      </tbody></table></div>`;
+      return;
+    }
+    if (S.roleView === 'people') {
+      const map = {};
+      S.roles.forEach((r) => (r.members.length ? r.members : ['담당자 미정']).forEach((n) => { (map[n] = map[n] || []).push(r); }));
+      const names = Object.keys(map).sort((a, b) => (a === '담당자 미정') - (b === '담당자 미정') || a.localeCompare(b, 'ko'));
+      w.innerHTML = `<div class="people-grid">${names.map((n) => `<div class="person-card glass">
+        <div class="pc-head">${n === '담당자 미정' ? '<span class="avatar sm" style="--c:#475569">?</span>' : STAR.avatar(n, memberColor(n), 'sm')}<b>${esc(n)}</b><small>${map[n].length}개</small></div>
+        ${map[n].map((r) => `<div class="pr-item" data-role="${r.id}"><span class="spill ${statusCls(r.status)}" data-cycle="${r.id}">${r.status}</span><span><b>${esc(r.role)}</b> <small class="muted">${esc(r.group)}</small></span></div>`).join('')}
+      </div>`).join('')}</div>`;
+      return;
+    }
+    w.innerHTML = `<div class="role-board">${groupsOf().map((g) => {
+      const list = S.roles.filter((r) => r.group === g);
+      const d = list.filter((r) => r.status === '완료').length;
+      return `<div class="role-col glass">
+        <div class="rc-head"><b>${esc(g)}</b><small>${d}/${list.length} 완료</small></div>
+        <div class="prog sm"><i style="width:${(d / list.length) * 100}%"></i></div>
+        ${list.map((r) => `<div class="role-card ${statusCls(r.status)}" data-role="${r.id}">
+          <div class="rcard-top"><b>${esc(r.role)}</b><button class="spill ${statusCls(r.status)}" data-cycle="${r.id}" title="눌러서 상태 바꾸기">${r.status}</button></div>
+          <div class="mchips">${memberChips(r.members)}</div>
+          ${r.task ? `<div class="rtask">${esc(r.task)}</div>` : ''}
+          ${r.due ? `<div class="rdue">${fmtDue(r.due)}</div>` : ''}
+        </div>`).join('')}
+        ${canWrite() ? `<button class="btn sm ghost add-in" data-addgroup="${esc(g)}">＋ 이 그룹에 역할 추가</button>` : ''}
+      </div>`;
+    }).join('')}</div>`;
+  }
+  $('#roleViewSeg').onclick = (e) => { const b = e.target.closest('[data-rv]'); if (!b) return; S.roleView = b.dataset.rv; localStorage.setItem('star_rv', S.roleView); renderRoles(); };
+  $('#rolesWrap').onclick = async (e) => {
+    const cy = e.target.closest('[data-cycle]');
+    if (cy) {
+      e.stopPropagation();
+      if (!canWrite()) return toast('지금은 역할분담 편집이 잠겨 있어요.', 'err');
+      const r = S.roles.find((x) => x.id === cy.dataset.cycle); if (!r) return;
+      const next = STATUSES[(STATUSES.indexOf(r.status) + 1) % STATUSES.length];
+      const old = r.status; r.status = next; renderRoles();
+      try { await STAR.call('roleStatus', { id: r.id, status: next }, S.token); if (next === '완료') toast(`'${r.role}' 완료! ✨`, 'ok'); }
+      catch (er) { r.status = old; renderRoles(); handleErr(er); }
+      return;
+    }
+    const ag = e.target.closest('[data-addgroup]'); if (ag) return openRoleEditor(null, ag.dataset.addgroup);
+    const rc = e.target.closest('[data-role]'); if (rc) openRoleEditor(S.roles.find((x) => x.id === rc.dataset.role));
+  };
+  $('#newRoleBtn').onclick = () => openRoleEditor(null);
+
+  async function openRoleEditor(r, group) {
+    if (!r && !canWrite()) return toast('지금은 역할분담 편집이 잠겨 있어요.', 'err');
+    if (!S.members.length) { try { S.members = (await STAR.call('listMembers', {}, S.token)).members; } catch (e) { handleErr(e); } }
+    const f = $('#roleForm'); f.reset();
+    S.roleEdit = { id: r ? r.id : null, members: r ? r.members.slice() : [] };
+    $('#roleTitle').textContent = r ? '🧩 역할 수정' : '🧩 역할 추가';
+    const groups = [...new Set([...groupsOf(), ...S.rooms.map((x) => x.name)])];
+    $('#groupList').innerHTML = groups.map((g) => `<option value="${esc(g)}">`).join('');
+    if (r) { f.group.value = r.group; f.role.value = r.role; f.task.value = r.task; f.due.value = /^\d{4}-\d{2}-\d{2}$/.test(r.due) ? r.due : ''; f.status.value = r.status; }
+    else if (group) f.group.value = group;
+    else if (S.room) f.group.value = S.room.name;
+    $('#roleDelete').classList.toggle('hidden', !(r && (r.userId === S.me.id || S.me.isAdmin)));
+    const ro = !canWrite();
+    $('#roleSubmit').classList.toggle('hidden', ro);
+    renderPicker(); openModal('roleModal');
+    setTimeout(() => (f.group.value ? f.role : f.group).focus(), 30);
+  }
+  function renderPicker() {
+    const sel = S.roleEdit.members;
+    const extra = sel.filter((n) => !S.members.some((m) => m.nickname === n));
+    $('#memberPicker').innerHTML = S.members.map((m) => `<button type="button" class="pick ${sel.includes(m.nickname) ? 'on' : ''}" data-nick="${esc(m.nickname)}">${STAR.avatar(m.nickname, m.color, 'xs')}${esc(m.nickname)}</button>`).join('') +
+      extra.map((n) => `<button type="button" class="pick on" data-nick="${esc(n)}">✍️ ${esc(n)}</button>`).join('') ||
+      '<span class="muted" style="font-size:13px">가입한 친구가 아직 없어요. 아래에 직접 입력하세요.</span>';
+  }
+  $('#memberPicker').onclick = (e) => {
+    const b = e.target.closest('[data-nick]'); if (!b) return;
+    const n = b.dataset.nick, sel = S.roleEdit.members, i = sel.indexOf(n);
+    if (i >= 0) sel.splice(i, 1); else sel.push(n);
+    renderPicker();
+  };
+  function addCustom() {
+    const inp = $('#customMember'), v = inp.value.trim(); if (!v) return;
+    if (!S.roleEdit.members.includes(v)) S.roleEdit.members.push(v);
+    inp.value = ''; renderPicker();
+  }
+  $('#addCustomMember').onclick = addCustom;
+  $('#customMember').addEventListener('keydown', (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === 'Enter') { e.preventDefault(); addCustom(); } });
+  $('#roleForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const payload = { id: S.roleEdit.id, group: f.group.value, role: f.role.value, task: f.task.value, due: f.due.value, status: f.status.value, members: S.roleEdit.members };
+    const btn = $('#roleSubmit'); btn.disabled = true;
+    try {
+      const r = await STAR.call('saveRole', payload, S.token);
+      const i = S.roles.findIndex((x) => x.id === r.role.id);
+      if (i >= 0) S.roles[i] = Object.assign(S.roles[i], r.role); else S.roles.push(r.role);
+      closeModal('roleModal'); renderRoles(); toast(S.roleEdit.id ? '수정했어요.' : '역할을 추가했어요! 🧩', 'ok');
+    } catch (er) { handleErr(er); } finally { btn.disabled = false; }
+  };
+  $('#roleDelete').onclick = async () => {
+    if (!(await STAR.ask({ title: '이 역할을 삭제할까요?', ok: '삭제', danger: true }))) return;
+    try { await STAR.call('deleteRole', { id: S.roleEdit.id }, S.token); S.roles = S.roles.filter((x) => x.id !== S.roleEdit.id); closeModal('roleModal'); renderRoles(); toast('삭제했어요.', 'ok'); }
+    catch (er) { handleErr(er); }
   };
 
   /* ---------------- 프로필 ---------------- */
@@ -630,16 +954,14 @@
     $('#profileTop').innerHTML = `${STAR.avatar(S.me.nickname, S.me.color, 'lg')}<div><b>${esc(S.me.nickname)}</b><div class="muted" style="font-size:13px">${esc(S.me.studentNo)} · ${esc(S.me.name)} <small>(나만 보여요)</small></div></div>`;
     $('#profileForm').nickname.value = S.me.nickname;
     swatches($('#profileSwatches'), S.me.color, (c) => (S.profileColor = c));
-    $('#pwForm').reset();
-    openModal('profileModal');
+    $('#pwForm').reset(); openModal('profileModal');
   };
   $('#profileForm').onsubmit = (e) => {
     e.preventDefault();
     withBtn(e.target, async () => {
       const r = await STAR.call('updateProfile', { nickname: e.target.nickname.value, color: S.profileColor }, S.token);
-      S.me = Object.assign(S.me, r.user); renderMe(); closeModal('profileModal');
-      toast('프로필을 바꿨어요 ✨', 'ok');
-      S.lastTs = 0; S.again = true; pollNow();
+      S.me = Object.assign(S.me, r.user); renderMe(); closeModal('profileModal'); toast('프로필을 바꿨어요 ✨', 'ok');
+      S.members = []; S.lastTs = 0; S.again = true; pollNow();
     });
   };
   $('#pwForm').onsubmit = (e) => {
@@ -647,8 +969,7 @@
     const f = Object.fromEntries(new FormData(e.target));
     withBtn(e.target, async () => {
       const r = await STAR.call('changePassword', f, S.token);
-      S.token = r.token; localStorage.setItem('star_token', r.token);
-      e.target.reset(); toast('비밀번호를 바꿨어요.', 'ok');
+      S.token = r.token; localStorage.setItem('star_token', r.token); e.target.reset(); toast('비밀번호를 바꿨어요.', 'ok');
     });
   };
   $('#logoutBtn').onclick = () => { closeModal('profileModal'); logout(); };
@@ -659,17 +980,15 @@
     $('#smallStar').innerHTML = STAR.starSvg(30);
     STAR.starfield($('#sky'));
     if (!STAR.apiUrl()) { show('setupView'); STAR.setupScreen($('#setupView'), init); return; }
-    try {
-      const r = await STAR.call('publicSettings');
-      applySettings(r.settings);
-    } catch (e) {
+    try { applySettings((await STAR.call('publicSettings')).settings); }
+    catch (e) {
       show('authView'); toast(e.message, 'err');
-      applySettings({ clubName: 'STAR학생단', tagline: '', notice: '', allowSignup: true, joinRequired: false, chatEnabled: true, uploadEnabled: true, boardWrite: true, maxFileMB: 10, channels: ['전체'], categories: ['기타'] });
+      applySettings({ clubName: 'STAR학생단', tagline: '', notice: '', allowSignup: true, joinRequired: false, chatEnabled: true, uploadEnabled: true, boardWrite: true, allowRoomCreate: true, maxFileMB: 10, categories: ['기타'] });
       return;
     }
     if (S.token) {
       try { const r = await STAR.call('me', {}, S.token); S.me = r.user; applySettings(r.settings); enterApp(); return; }
-      catch (e) { if (e.code === 'AUTH' || e.code === 'BANNED') { localStorage.removeItem('star_token'); S.token = ''; toast(e.message, 'err'); } else toast(e.message, 'err'); }
+      catch (e) { if (e.code === 'AUTH' || e.code === 'BANNED') { localStorage.removeItem('star_token'); S.token = ''; } toast(e.message, 'err'); }
     }
     show('authView');
   }
